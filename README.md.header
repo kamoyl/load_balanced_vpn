@@ -22,7 +22,7 @@ what are very important difference when VPN/ppp is used (for example in routing)
 
 All of it works on... yes, yes, really: Raspberry Pi 3 B+ on rasbpian:
 
-[Detailed and good description with many details, but... not for ppp kind](http://www.system-rescue-cd.org/networking/Load-balancing-using-iptables-with-connmark/)\
+[Detailed and good description, but... not for ppp kind](http://www.system-rescue-cd.org/networking/Load-balancing-using-iptables-with-connmark/)\
 [Not as detailed as previous one, and without routing configuration](https://blog.khax.net/2009/12/01/multi-gateway-balancing-with-iptables/)\
 [Many useful details of how to configure openvpn to use more then one connection](https://serverfault.com/questions/821583/routes-for-two-openvpn-connections-different-hosts-in-the-same-client)\
 [Some of examples of public NordVPN API](https://blog.sleeplessbeastie.eu/2019/02/18/how-to-use-public-nordvpn-api/)

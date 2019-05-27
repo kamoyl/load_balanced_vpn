@@ -22,7 +22,7 @@ what are very important difference when VPN/ppp is used (for example in routing)
 
 All of it works on... yes, yes, really: Raspberry Pi 3 B+ on rasbpian:
 
-[Detailed and good description with many details, but... not for ppp kind](http://www.system-rescue-cd.org/networking/Load-balancing-using-iptables-with-connmark/)\
+[Detailed and good description, but... not for ppp kind](http://www.system-rescue-cd.org/networking/Load-balancing-using-iptables-with-connmark/)\
 [Not as detailed as previous one, and without routing configuration](https://blog.khax.net/2009/12/01/multi-gateway-balancing-with-iptables/)\
 [Many useful details of how to configure openvpn to use more then one connection](https://serverfault.com/questions/821583/routes-for-two-openvpn-connections-different-hosts-in-the-same-client)\
 [Some of examples of public NordVPN API](https://blog.sleeplessbeastie.eu/2019/02/18/how-to-use-public-nordvpn-api/)
@@ -55,26 +55,4 @@ obfuscated, Netherlands servers are used, but, when use:
 - [ ] - add full automation to find best servers from the closesed locations around country script is run from
 
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
-
-
-* __Added a bit of description and help in slightly polished README__
-
-    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:45:21 +0200
-    
-    EAD -&gt; refs/heads/master, refs/remotes/origin/master, refs/remotes/origin/HEAD
-    
-
-* __First commit, after move from code repo__
-
-    [root](mailto:root@pi.dom.local) - Mon, 27 May 2019 10:22:36 +0200
-    
-    
-    
-
-* __Initial commit__
-
-    [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 10:15:37 +0200
-    
-    
-
 
