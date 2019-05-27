@@ -20,7 +20,7 @@ Becasue I'm system engineer, and not network one, and despite I understand form 
 to make myself understand why ths way, and what is the difference between "normal" TCP/UDP eth connections, and
 what are very important difference when VPN/ppp is used (for example in routing)...
 
-All of it works on... yes, yes, really: Raspberry Pi 3 B+ on rasbpian:
+All of it works as butter on... yes, yes, really: rasbpian on Raspberry Pi 3 B+:
 
 [Detailed and good description, but... not for ppp kind](http://www.system-rescue-cd.org/networking/Load-balancing-using-iptables-with-connmark/)\
 [Not as detailed as previous one, and without routing configuration](https://blog.khax.net/2009/12/01/multi-gateway-balancing-with-iptables/)\
