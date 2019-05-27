@@ -56,18 +56,3 @@ obfuscated, Netherlands servers are used, but, when use:
 
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
-
-* __First commit, after move from code repo__
-
-    [root](mailto:root@pi.dom.local) - Mon, 27 May 2019 10:22:36 +0200
-    
-    EAD -&gt; refs/heads/master, refs/remotes/origin/master, refs/remotes/origin/HEAD
-    
-
-* __Initial commit__
-
-    [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 10:15:37 +0200
-    
-    
-
-
