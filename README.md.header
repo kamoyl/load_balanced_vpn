@@ -36,8 +36,8 @@ I know - that it might be better scripted (for example to use list of lists to m
 but slowly I will try to add some more features and also optimize code little bit.
 
 I also used NordVPN API to get some extra information on the fly, so NORMAL internet connection suppose to work
-before start 'em, but... it might be either changed having collected all nordvpn config files, and based on this start 
-those scripts.
+before start 'em, but... there is easy workaround: download first this file [zipped all config files for openvpn](https://nordvpn.com/api/files/zip),
+and then use those files as connection parameters data...
 
 ## HowTo
 
