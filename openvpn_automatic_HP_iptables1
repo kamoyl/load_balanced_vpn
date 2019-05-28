@@ -27,6 +27,11 @@ iptables -t mangle -A CONNMARK2 -j MARK --set-mark 2
 iptables -t mangle -A CONNMARK2 -j CONNMARK --save-mark
 #iptables -t mangle -A CONNMARK2 -j LOG --log-prefix 'iptables-mark2: ' --log-level info
 
+iptables -t mangle -N CONNMARK3
+iptables -t mangle -A CONNMARK3 -j MARK --set-mark 3
+iptables -t mangle -A CONNMARK3 -j CONNMARK --save-mark
+#iptables -t mangle -A CONNMARK3 -j LOG --log-prefix 'iptables-mark3: ' --log-level info
+
 iptables -t mangle -N RESTOREMARK
 iptables -t mangle -A RESTOREMARK -j CONNMARK --restore-mark
 #iptables -t mangle -A RESTOREMARK -j LOG --log-prefix 'restore-mark: ' --log-level info
@@ -45,12 +50,21 @@ then
 fi
 iptables -t nat -A SNAT2 -j SNAT --to-source ${VPN_SERVER2_LOCALROUTER_IP}
 
+iptables -t nat -N SNAT3
+if [[ ${VERBOSE} == yes ]]
+then
+  iptables -t nat -A SNAT3 -j LOG --log-prefix "snat-to-${VPN_SERVER3_LOCALROUTER_IP}: " --log-level info
+fi
+iptables -t nat -A SNAT3 -j SNAT --to-source ${VPN_SERVER3_LOCALROUTER_IP}
+
 # restore the fwmark on packets that belong to an existing connection
 iptables -t mangle -A PREROUTING -i ${MAIN_ETH} -p tcp -m state --state ESTABLISHED,RELATED -j RESTOREMARK
 
 # if the mark is zero it means the packet does not belong to an existing connection
-iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every 2 --packet 0 -j CONNMARK1
-iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every 2 --packet 1 -j CONNMARK2
+iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every 3 --packet 0 -j CONNMARK1
+iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every 3 --packet 1 -j CONNMARK2
+iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every 3 --packet 2 -j CONNMARK3
 
 iptables -t nat -A POSTROUTING -o ${VPN_SERVER1_DEV} -j SNAT1
 iptables -t nat -A POSTROUTING -o ${VPN_SERVER2_DEV} -j SNAT2
+iptables -t nat -A POSTROUTING -o ${VPN_SERVER3_DEV} -j SNAT3

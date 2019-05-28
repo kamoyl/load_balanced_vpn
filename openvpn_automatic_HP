@@ -1,10 +1,5 @@
 #!/bin/bash
 
-#DOCS:
-#http://www.system-rescue-cd.org/networking/Load-balancing-using-iptables-with-connmark/
-#https://blog.khax.net/2009/12/01/multi-gateway-balancing-with-iptables/
-#https://serverfault.com/questions/821583/routes-for-two-openvpn-connections-different-hosts-in-the-same-client
-
 #NordVPN API
 #countries in: curl --silent https://api.nordvpn.com/server | jq --raw-output '[.[].country] | sort | unique | .[]'
 #server count in each country: curl --silent https://api.nordvpn.com/server | jq --raw-output '. as $parent | [.[].country] | sort | unique | .[] as $country | ($parent | map(select(.country == $country)) | length) as $count |  [$country, $count] |  "\(.[0]): \(.[1])"' 
@@ -88,20 +83,20 @@ exit 1
 VERBOSE=no
 HIDDEN=no
 MULTINATIONAL=no
-while getopts ":o:h:m:v" ARG
+while getopts ":o:hmv" ARG
 do
   case "${ARG}" in
         v)
             VERBOSE=yes
             ;;
         o)
-            HIDDEN=yes
+            o=${OPTARG}
             ;;
         m)
             MULTINATIONAL=yes
             ;;
         h)
-            h=${OPTARG}
+            HIDDEN=yes
             ;;
         *)
             usage
@@ -137,21 +132,36 @@ LOCAL_GATEWAY="192.168.2.254"
 if [[ ${HIDDEN} == no ]] && [[ ${MULTINATIONAL} == no ]]
 then
   inf "Picking up the least loaded and the closest NordVPN servers"
-  RECOMMENDED_SERVERS=$(curl --silent 'https://nordvpn.com/wp-admin/admin-ajax.php?action=servers_recommendations' | jq --raw-output '.[].hostname')
+  RECOMMENDED_SERVERS=$(curl --silent 'https://nordvpn.com/wp-admin/admin-ajax.php?action=servers_recommendations' | jq --raw-output ' .[].hostname')
 elif [[ ${HIDDEN} == yes ]] && [[ ${MULTINATIONAL} == no ]]
 then
   inf "Picking up the least loaded, obfuscated and the closest NordVPN servers"
-  RECOMMENDED_SERVERS=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_standard&filters\[servers_groups\]\[identifier\]=legacy_obfuscated_servers" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(5;.[]) | [.hostname] | "\(.[0])"')
+  RECOMMENDED_SERVERS=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_standard&filters\[servers_groups\]\[identifier\]=legacy_obfuscated_servers" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(4;.[]) | [.hostname] | "\(.[0])"')
 elif [[ ${HIDDEN} == no ]] && [[ ${MULTINATIONAL} == yes ]]
 then
-  warn "NOT yet implemented"
-  exit 1
+  inf "Picking up the least loaded and the closest (but from bordered countries) NordVPN servers"
+  for COUNTRY in 21 126 81 74
+  do
+    RECOMMENDED_SERVER=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[country_id\]=${COUNTRY}&limit=1" | jq --raw-output '.[].hostname')
+    RECOMMENDED_SERVERS="${RECOMMENDED_SERVER}
+ ${RECOMMENDED_SERVERS}"
+  done
 elif [[ ${HIDDEN} == yes ]] && [[ ${MULTINATIONAL} == yes ]]
 then
-  warn "NOT yet implemented"
-  exit 1
+  inf "Picking up the least loaded, obfuscated and the closest (but from bordered countries) NordVPN servers"
+  for COUNTRY in 21 126 81 74
+  do
+    RECOMMENDED_SERVER=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_standard&filters\[servers_groups\]\[identifier\]=legacy_obfuscated_servers&filters\[country_id\]=${COUNTRY}&limit=1" | jq --raw-output '.[].hostname')
+    RECOMMENDED_SERVERS="${RECOMMENDED_SERVER}
+ ${RECOMMENDED_SERVERS}"
+  done
 else
   usage
+fi
+
+if [[ ${VERBOSE} == yes ]]
+then
+  debug "RECOMMENDED_SERVERS=${YELLOW}\"${RECOMMENDED_SERVERS}\""
 fi
 
 VPN_SERVER1_NAME=$(echo ${RECOMMENDED_SERVERS} | awk '{print $1}')
@@ -174,12 +184,6 @@ VPN_IP_SERVER4=$(nslookup ${VPN_SERVER4_NAME} | grep -A2 ^Name: | grep ^Address:
 VPN_SERVER4="remote ${VPN_IP_SERVER4} 443"
 VPN_SERVER4_DEV="tun3"
 
-VPN_SERVER5_NAME=$(echo ${RECOMMENDED_SERVERS} | awk '{print $5}')
-VPN_IP_SERVER5=$(nslookup ${VPN_SERVER5_NAME} | grep -A2 ^Name: | grep ^Address: | awk '{print $2}')
-VPN_SERVER5="remote ${VPN_IP_SERVER5} 443"
-VPN_SERVER5_DEV="tun4"
-
-
 if [[ ${VERBOSE} == yes ]]
 then
   debug "PARAMETERS of VPN1:
@@ -198,10 +202,6 @@ then
                                                   VPN_SERVER4_NAME  =   ${WINE}${VPN_SERVER4_NAME}${BLUE}
                                                   VPN_IP_SERVER4    =   ${WINE}${VPN_IP_SERVER4}${BLUE}
                                                   VPN_SERVER4       =   ${WINE}${VPN_SERVER4}${BLUE}"
-  debug "PARAMETERS of VPN5:
-                                                  VPN_SERVER5_NAME  =   ${WINE}${VPN_SERVER5_NAME}${BLUE}
-                                                  VPN_IP_SERVER5    =   ${WINE}${VPN_IP_SERVER5}${BLUE}
-                                                  VPN_SERVER5       =   ${WINE}${VPN_SERVER5}${BLUE}"
 fi
 
 if [[ ${VERBOSE} == yes ]]
@@ -231,26 +231,17 @@ fi
 cp -f /etc/openvpn/nordvpn_template.conf /etc/openvpn/nordvpn_srv4.conf
 sed -i "s/remote_variable/${VPN_SERVER4}\n${VPN_SERVER5}\n${VPN_SERVER1}\n${VPN_SERVER2}\n${VPN_SERVER3}/g" /etc/openvpn/nordvpn_srv4.conf
 
-if [[ ${VERBOSE} == yes ]]
-then
-  debug "Copying VPNserver5 configuration from template"
-fi
-cp -f /etc/openvpn/nordvpn_template.conf /etc/openvpn/nordvpn_srv5.conf
-sed -i "s/remote_variable/${VPN_SERVER5}\n${VPN_SERVER1}\n${VPN_SERVER2}\n${VPN_SERVER3}\n${VPN_SERVER4}/g" /etc/openvpn/nordvpn_srv5.conf
-
 inf "Stopping NordVPN connections"
 systemctl stop openvpn@nordvpn &
 systemctl stop openvpn@nordvpn_srv1 &
 systemctl stop openvpn@nordvpn_srv2 &
 systemctl stop openvpn@nordvpn_srv3 &
 systemctl stop openvpn@nordvpn_srv4 &
-systemctl stop openvpn@nordvpn_srv5 &
 inf "Cleaning routing tables of tun interfaces"
 ip -s -d route flush table ${VPN_SERVER1_DEV} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route flush table "${VPN_SERVER2_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route flush table "${VPN_SERVER3_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route flush table "${VPN_SERVER4_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-ip -s -d route flush table "${VPN_SERVER5_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route del 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route del 192.168.122.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 
@@ -263,8 +254,6 @@ ip -s -d rule del from all fwmark 0x3 lookup "${VPN_SERVER3_DEV}" >> "${LOG}/${N
 ip -s -d rule del from all fwmark 0x3 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d rule del from all fwmark 0x4 lookup "${VPN_SERVER4_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d rule del from all fwmark 0x4 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-ip -s -d rule del from all fwmark 0x5 lookup "${VPN_SERVER5_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-ip -s -d rule del from all fwmark 0x5 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 IFS=$'\n'
 for RULE in $(ip rule | grep lookup | grep tun)
 do
