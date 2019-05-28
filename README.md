@@ -57,11 +57,28 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __Added options to connect to different countries at once - funny results form IP localization services :)__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 09:42:34 +0200
+    
+    efs/remotes/origin/master, refs/remotes/origin/HEAD, refs/heads/master
+    few more issues corrected
+    
+    some cleaning
+    
+
+* __small correction to README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:58:27 +0200
+    
+    
+    
+
 * __Added zipped nordvpn/openvpn config files link__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:56:07 +0200
     
-    EAD -&gt; refs/heads/master, refs/remotes/origin/master, refs/remotes/origin/HEAD
+    
     
 
 * __Corrected one weird sentence in README__
