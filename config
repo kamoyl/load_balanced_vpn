@@ -69,10 +69,10 @@ debug() { log ${dbg_lvl} "DEBUG: $1"; }
 log() {
       if [ ${verbosity} -ge $1 ]
       then
-        datestring=$(date +'%Y-%m-%d %H:%M:%S')
+        datestring=$(date +'%H:%M:%S')
         # Expand escaped characters, wrap at 300 chars, indent wrapped lines
         #echo -e "${BLUE}${datestring} $(basename $0) [${ENV} ${REPORT_NUMBER}] ${SHLVL} ${2}${RESET}" | fold -w300 -s | sed '2~1s/^/  /' >&3
-        echo -e "${BLUE}${datestring} $(basename $0) [${ENV} ${REPORT_NUMBER}] ${2}${RESET}" | fold -w300 -s | sed '2~1s/^/  /' >&3
+        echo -e "${BLUE}${datestring} $(basename $0) [${GREEN}${VPN_IP_SERVER} ${LIME}${VPN_SERVER_LOCALROUTER_IP}${BLUE}] ${2}${RESET}" | fold -w300 -s | sed '2~1s/^/  /' >&3
       fi
 }
 
