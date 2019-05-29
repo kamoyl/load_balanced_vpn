@@ -98,7 +98,7 @@ mkdir -p ${LOG}
 MAIN_ETH="enxb827eb330952"
 NORDVPN_HA_PROCESS="nordvpn_ha_process"
 LOCAL_GATEWAY="192.168.2.254"
-LB_CONNECTIONS="3"
+LB_CONNECTIONS="4"
 TUN_MAX_DEV=$((LB_CONNECTIONS - 1))
 PRE_TEMP_CONF="nordvpn_pre_conf_details_${CURRENT_TIMESTAMP}.conf"
 POST_TEMP_CONF="nordvpn_post_conf_details_${CURRENT_TIMESTAMP}.conf"

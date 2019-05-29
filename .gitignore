@@ -1,0 +1,7 @@
+nordvpn_srv*.conf
+route-up.sh
+PADD/*
+update-resolv-conf
+work/*
+var/*
+nordvpn_auth
