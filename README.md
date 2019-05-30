@@ -59,6 +59,68 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __README corrections__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:48:15 +0200
+    
+    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
+
+* __Changelog__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:44:11 +0200
+    
+    
+    
+
+* __Added extra script for looking into servers statistics__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:42:12 +0200
+    
+    
+    Added script for cleaning all openvpn connection, routing tables and rules - it
+    is important for automatically find recommended but also THE CLOSEST servers
+    
+    Added full automation of finding closest servers
+    
+    Corrected looking for servers with standard vpn-s and obfuscated
+    
+    Some small issues corrections
+    
+    preparation for amount of openvpn connection moved to parameters
+    
+
+* __Tested against four connections at once__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Wed, 29 May 2019 21:21:56 +0200
+    
+    
+    added .gitignore
+    
+    removed auth - but it is easy to add
+    
+
+* __Changelog__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 18:43:17 +0200
+    
+    
+    
+
+* __Rewritten completely the whole code and did it smaller, and cleaner, and in one loop accordingly to a connection__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 17:03:18 +0200
+    
+    
+    removed separated iptables code, and stored it in main script
+    
+    slightly changed all notifications
+    
+    Prepare script for a parameter of amount of simultaneus connections
+    
+    made lots of cleaning
+    
+
 * __Added options to connect to different countries at once - funny results form IP localization services :)__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 09:42:34 +0200
