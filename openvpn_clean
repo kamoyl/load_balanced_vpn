@@ -1,0 +1,83 @@
+#!/bin/bash
+
+if [[ "${OSTYPE}" =~ "linux" ]]
+then
+  SCRIPT=$(readlink -f $0)
+elif [[ "${OSTYPE}" =~ "darwin" ]]
+then
+  SCRIPT=$(greadlink -f $0)
+else
+  SCRIPT=$(readlink -f $0)
+fi
+
+SCRIPTS_HOME=$(dirname ${SCRIPT})
+source "${SCRIPTS_HOME}/config"
+echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESET}"
+
+VERBOSE=yes
+
+MAIN_ETH="enxb827eb330952"
+NORDVPN_HA_PROCESS="nordvpn_ha_process"
+LOCAL_GATEWAY="192.168.2.254"
+LB_CONNECTIONS=$(ifconfig | grep tun | awk -F\: '{print $1}' | wc -l)
+TUN_MAX_DEV=$((LB_CONNECTIONS - 1))
+PRE_TEMP_CONF="nordvpn_pre_conf_details_${CURRENT_TIMESTAMP}.conf"
+POST_TEMP_CONF="nordvpn_post_conf_details_${CURRENT_TIMESTAMP}.conf"
+COUNTRY_ID_FILE="COUNTRY_ID_${CURRENT_TIMESTAMP}.txt"
+RECOMMENDED_CLOSEST_FILE="closest_recommended_${CURRENT_TIMESTAMP}.txt"
+
+debug "CONSTANTS of all ${YELLOW}VPNs${BLUE}:
+                                                                      MAIN_ETH      =   ${WINE}${MAIN_ETH}${BLUE}
+                                                                      LOCAL_GATEWAY =   ${WINE}${LOCAL_GATEWAY}${BLUE}
+                                                                      LB_CONNECTIONS=   ${WINE}${LB_CONNECTIONS}${BLUE}
+                                                                      TUN_MAX_DEV   =   ${WINE}${TUN_MAX_DEV}${BLUE}"
+
+inf "Flushing iptables"
+iptables -t filter -F
+iptables -t filter -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -t filter -P INPUT ACCEPT
+iptables -t filter -P OUTPUT ACCEPT
+iptables -t filter -P FORWARD ACCEPT
+
+for ((TUN_DEVICE_NR=0;TUN_DEVICE_NR<=${TUN_MAX_DEV};TUN_DEVICE_NR++))
+do
+  VPN_SERVER_LOCALROUTER_IP=""
+  NUMBER=$((TUN_DEVICE_NR + 1))
+  VPN_SERVER_DEV="tun${TUN_DEVICE_NR}"
+  inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${NUMBER}${CYAN}), and flushing routing tables of ${YELLOW}${VPN_SERVER_DEV}${CYAN} interface"
+  systemctl stop openvpn@nordvpn_srv${NUMBER}
+  ip -s -d route flush table ${VPN_SERVER_DEV} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${NUMBER} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${NUMBER} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  IFS=$'\n'
+  for RULE in $(ip rule | grep lookup | grep ${VPN_SERVER_DEV})
+  do
+    SRC=$(echo ${RULE} | awk '{print $3}')
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "Removing RULE:      ${YELLOW}${RULE}${BLUE}"
+    fi
+    (
+      ip -s -d rule del from ${SRC} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+      if [ $? -eq 0 ]
+      then
+        if [[ ${VERBOSE} == yes ]]
+        then
+          debug "RULE Removed:       ${YELLOW}${RULE}${CYAN}"
+        fi
+      fi
+    ) &
+  done
+  wait
+done
+inf "Adding extra route for RedHat7 VMs"
+ip -s -d route del 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+ip -s -d route del 192.168.122.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+ip -s -d route add 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+ip -s -d route add 192.168.122.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+
+ip route flush cache

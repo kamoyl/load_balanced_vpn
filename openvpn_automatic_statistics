@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#LIST_OF_SERVERS=$(curl --silent https://api.nordvpn.com/server | jq --raw-output '.[].domain' | sort --version-sort)
+#LOAD_FOR_SERVER=$(curl --silent https://api.nordvpn.com/server/stats/no93.nordvpn.com | jq .percent)
+
+#COUNTRY_ID=$(curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | select(.name == "Germany") | [.name, .id] | "ID for \(.[0]) is \(.[1])"')
+#COUNTRY_IDS=$(curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | . as $parent | .cities[] | [$parent.name, $parent.id, .name, .id] | "\(.[0]) [\(.[1])] - \(.[2]) [\(.[3])]"' )
+
+#SERVERS_IN_SPECIFIC_COUNTRY=$(curl --silent https://api.nordvpn.com/server | jq --raw-output '.[] | select(.country == "Bosnia and Herzegovina") | .domain')
+
+#LOWEST_LOAD=$(curl --silent https://api.nordvpn.com/server/stats | jq '. | to_entries | sort_by(.value.percent) | limit(100;.[]) | "\(.key): \(.value.percent)"' | grep -v ^\"jp)
+
+#RECOMMENDED_PER_ID=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[country_id\]=81&limit=3" | jq --raw-output '.[].hostname')
+
+#TYPE_OF_VPNS=$(curl --silent "https://api.nordvpn.com/v1/servers/groups" | jq --raw-output '.[] | . as $parent | .type | [$parent.title, $parent.id, $parent.identifier, .title, .id, .identifier] | "\(.[0]) [\(.[2]) (\(.[1]))] -  \(.[3]) [\(.[5]) (\(.[4]))]"')
+
+#RECOMENDED_SPECIFIC_TYPE_ID=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_obfuscated_servers&filters\[country_id\]=195&limit=3" | jq '.[].hostname')
+#ALL_COUNTRIES=$(curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | . as $parent | .cities[] | [$parent.name, $parent.id, .name, .id] | "\(.[0])~\(.[1])"' | sort -u)
+
+if [[ "${OSTYPE}" =~ "linux" ]]
+then
+  SCRIPT=$(readlink -f $0)
+elif [[ "${OSTYPE}" =~ "darwin" ]]
+then
+  SCRIPT=$(greadlink -f $0)
+else
+  SCRIPT=$(readlink -f $0)
+fi
+
+SCRIPTS_HOME=$(dirname ${SCRIPT})
+source "${SCRIPTS_HOME}/config"
+echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESET}"
+
+curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | . as $parent | .cities[] | [$parent.name, $parent.id, .name, .id] | "\(.[0])~\(.[1])"' | sort -u> COUNTRY_ID_${CURRENT_TIMESTAMP}.txt
+IFS=$'\n'
+for COUNTRY_ID in $(cat COUNTRY_ID_${CURRENT_TIMESTAMP}.txt)
+do
+  COUNTRY=$(echo ${COUNTRY_ID} | awk -F\~ '{print $1}')
+  ID=$(echo ${COUNTRY_ID} | awk -F\~ '{print $2}')
+  RECOMMENDED_PER_ID=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_standard&filters\[country_id\]=${ID}&limit=1" | jq --raw-output '.[].hostname')
+  for RECOMMENDED in ${RECOMMENDED_PER_ID}
+  do
+    (
+      PING_SUM=$(ping -c 3 ${RECOMMENDED} | grep 'bytes from' | awk -Ftime= '{print $2}' | awk '{sum+=$1} END {print sum}')
+      PING_AVG=$(echo "${PING_SUM}/3" | bc)
+      inf "ping=${LIME}${PING_AVG}${CYAN} ms for ${YELLOW}${COUNTRY}${CYAN} recommended server is: ${LIME}${RECOMMENDED}"
+      echo "${PING_AVG}~${RECOMMENDED}~${COUNTRY}" >> nordvpn_statistics_${CURRENT_TIMESTAMP}.txt
+    ) &
+  done
+done
+wait
+inf "Best (closest and recommended) servers are:"
+sort -gu nordvpn_statistics_${CURRENT_TIMESTAMP}.txt | tail -n +2 | head -n6
