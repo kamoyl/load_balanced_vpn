@@ -1,4 +1,4 @@
-# load_balanced_vpn
+# load balanced multi country nordvpn/openvpn
 ## purpose
 
 This repo has been created for something which started to be small and easy solution for NordVPN, but 
@@ -50,9 +50,10 @@ obfuscated, Netherlands servers are used, but, when use:
 
 ## ToDo
 
-- [ ] - finished nearest country servers collecting and using
-- [ ] - add obfuscating nearest countries servers using
-- [ ] - add full automation to find best servers from the closesed locations around country script is run from
+- [ ] - Checking if appropriate route tables exists in iproute2/rt_tables - and manage them automatically
+- [X] - checking how many vpn connections is open to close also this one which will not be started (if there were 4 previously, and now there are three, fourth one won't be stopped
+- [X] - finished nearest country servers collecting and using (checking and calculating ping statistics + load)
+- [X] - add full automation to find best servers from the closesed locations around country script is run from (calculates ping statistics)
 
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
