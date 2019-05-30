@@ -44,16 +44,17 @@ and then use those files as connection parameters data...
 just run: openvpn_automatic_HP - the rest will be done automatically; by default - the best (least load), not
 obfuscated, Netherlands servers are used, but, when use:
 * -m - it will try to use NordVPN servers located in nearest countries (also with the least load)
-* -h - obfuscated servers will be used (-m and -h might be used both)
+* -h - obfuscated servers will be used (-m and -h might be used together)
 * -v - for verbose use
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
 
 ## ToDo
 
-- [ ] - Checking if appropriate route tables exists in iproute2/rt_tables - and manage them automatically
-- [X] - checking how many vpn connections is open to close also this one which will not be started (if there were 4 previously, and now there are three, fourth one won't be stopped
-- [X] - finished nearest country servers collecting and using (checking and calculating ping statistics + load)
-- [X] - add full automation to find best servers from the closesed locations around country script is run from (calculates ping statistics)
+- [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
+- [ ] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
+- [X] - checking how many vpn connections is open and stopping all of them, flushing related routing tables and removing related routing rules
+- [X] - automatic nearest country servers collecting and using (checking and calculating ping statistics + load)
+- [X] - add full automation to find best servers from the closesd locations around country script is run from (calculates ping statistics)
 
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
