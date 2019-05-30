@@ -1,4 +1,4 @@
-# load_balanced_vpn
+# load balanced multi country nordvpn/openvpn
 ## purpose
 
 This repo has been created for something which started to be small and easy solution for NordVPN, but 
@@ -44,24 +44,105 @@ and then use those files as connection parameters data...
 just run: openvpn_automatic_HP - the rest will be done automatically; by default - the best (least load), not
 obfuscated, Netherlands servers are used, but, when use:
 * -m - it will try to use NordVPN servers located in nearest countries (also with the least load)
-* -h - obfuscated servers will be used (-m and -h might be used both)
+* -h - obfuscated servers will be used (-m and -h might be used together)
 * -v - for verbose use
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
 
 ## ToDo
 
-- [ ] - finished nearest country servers collecting and using
-- [ ] - add obfuscating nearest countries servers using
-- [ ] - add full automation to find best servers from the closesed locations around country script is run from
+- [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
+- [ ] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
+- [X] - checking how many vpn connections is open and stopping all of them, flushing related routing tables and removing related routing rules
+- [X] - automatic nearest country servers collecting and using (checking and calculating ping statistics + load)
+- [X] - add full automation to find best servers from the closesd locations around country script is run from (calculates ping statistics)
 
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
+
+* __README corrections__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:48:15 +0200
+    
+    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
+
+* __Changelog__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:44:11 +0200
+    
+    
+    
+
+* __Added extra script for looking into servers statistics__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:42:12 +0200
+    
+    
+    Added script for cleaning all openvpn connection, routing tables and rules - it
+    is important for automatically find recommended but also THE CLOSEST servers
+    
+    Added full automation of finding closest servers
+    
+    Corrected looking for servers with standard vpn-s and obfuscated
+    
+    Some small issues corrections
+    
+    preparation for amount of openvpn connection moved to parameters
+    
+
+* __Tested against four connections at once__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Wed, 29 May 2019 21:21:56 +0200
+    
+    
+    added .gitignore
+    
+    removed auth - but it is easy to add
+    
+
+* __Changelog__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 18:43:17 +0200
+    
+    
+    
+
+* __Rewritten completely the whole code and did it smaller, and cleaner, and in one loop accordingly to a connection__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 17:03:18 +0200
+    
+    
+    removed separated iptables code, and stored it in main script
+    
+    slightly changed all notifications
+    
+    Prepare script for a parameter of amount of simultaneus connections
+    
+    made lots of cleaning
+    
+
+* __Added options to connect to different countries at once - funny results form IP localization services :)__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 09:42:34 +0200
+    
+    efs/remotes/origin/master, refs/remotes/origin/HEAD, refs/heads/master
+    few more issues corrected
+    
+    some cleaning
+    
+
+* __small correction to README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:58:27 +0200
+    
+    
+    
 
 * __Added zipped nordvpn/openvpn config files link__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:56:07 +0200
     
-    EAD -&gt; refs/heads/master, refs/remotes/origin/master, refs/remotes/origin/HEAD
+    
     
 
 * __Corrected one weird sentence in README__
