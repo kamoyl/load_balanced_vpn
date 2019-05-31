@@ -18,12 +18,15 @@ usage()
 {
 echo "
 ${CYAN}Usage:${BRIGHT}${WHITE}
-$0 [-h] [-m] [-o DIRECTORY] [-v]
+$0 [-h] [-m] [-M 1-6][-o DIRECTORY] [-v]
 
 ${NORMAL}${CYAN}This script manages LB HA connections to NordVPN services:${BLUE}
 
     ${LIME}-h${BLUE} Obfuscated NordVPN servers - smallest load (ommiting national firewalls)
     ${LIME}-m${BLUE} Multinational NordVPN servers - smallest load (connecting to a few countries servers at once)
+    ${LIME}-M${BLUE} Amount of balanced connections
+          (defult:  3 simultaneus vpn connections,
+           max:     6 simultaneus vpn connections.)
     ${LIME}-o${BLUE}  OUTPUT directory - where to store ALL LOGs and TEMP files
           (default directory is: ${CYAN}${HOME}/var${BLUE} and TMP and
            LOG are subdirectories to var)
@@ -50,6 +53,16 @@ do
             ;;
         m)
             MULTINATIONAL=yes
+            ;;
+        M)
+            M=${OPTARG}
+            if [ ${M} -ge 1 ] || [ ${M} -le 6 ]
+            then
+              LB_CONNECTIONS=${M}
+            else
+              error "There might be only from 1 to 6 simultaneus connections to NordVPN"
+              exit 1
+            fi
             ;;
         h)
             HIDDEN=yes
@@ -79,11 +92,16 @@ TMP="${VAR}/tmp"
 mkdir -p ${TMP}
 LOG="${VAR}/log"
 mkdir -p ${LOG}
-
+if [ -z ${M} ]
+then
+  LB_CONNECTIONS="4"
+fi
+  
 MAIN_ETH="enxb827eb330952"
+OPENVPN_TEMPLATE="nordvpn_template.conf"
+DEV_VPN=$(grep ^dev "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" | awk '{print $2}')
 NORDVPN_HA_PROCESS="nordvpn_ha_process"
 LOCAL_GATEWAY="192.168.2.254"
-LB_CONNECTIONS="4"
 TUN_MAX_DEV=$((LB_CONNECTIONS - 1))
 PRE_TEMP_CONF="nordvpn_pre_conf_details_${CURRENT_TIMESTAMP}.conf"
 POST_TEMP_CONF="nordvpn_post_conf_details_${CURRENT_TIMESTAMP}.conf"
@@ -194,13 +212,13 @@ do
   VPN_SERVER_NAME=$(echo ${RECOMMENDED_SERVERS} | awk -v a="${NUMBER}" '{print $a}')
   VPN_IP_SERVER=$(nslookup ${VPN_SERVER_NAME} | grep -A2 ^Name: | grep ^Address: | awk '{print $2}')
   VPN_SERVER="remote ${VPN_IP_SERVER} 443"
-  VPN_SERVER_DEV="tun${TUN_DEVICE_NR}"
+  VPN_SERVER_DEV="${DEV_VPN}${TUN_DEVICE_NR}"
   echo "${TUN_DEVICE_NR}~${NUMBER}~${VPN_SERVER_NAME}~${VPN_IP_SERVER}~${VPN_SERVER}~${VPN_SERVER_DEV}" >> "${TMP}/${PRE_TEMP_CONF}"
   if [[ ${VERBOSE} == yes ]]
   then
     debug "Creating ${YELLOW}nordvpn_srv${NUMBER}.conf${BLUE} from template"
   fi
-  cp -f /etc/openvpn/nordvpn_template.conf /etc/openvpn/nordvpn_srv${NUMBER}.conf
+  cp -f "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE} /etc/openvpn/nordvpn_srv${NUMBER}.conf
   sed -i "s/remote_variable/${VPN_SERVER}/g" /etc/openvpn/nordvpn_srv${NUMBER}.conf
   inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${NUMBER}${CYAN}), and flushing routing tables of ${YELLOW}${VPN_SERVER_DEV}${CYAN} interface"
   systemctl stop openvpn@nordvpn_srv${NUMBER}
