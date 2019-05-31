@@ -51,7 +51,8 @@ obfuscated, Netherlands servers are used, but, when use:
 ## ToDo
 
 - [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
-- [ ] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
+- [X] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
+- [X] - extra parameter for amount of simultaneus connections, default is 4
 - [X] - checking how many vpn connections is open and stopping all of them, flushing related routing tables and removing related routing rules
 - [X] - automatic nearest country servers collecting and using (checking and calculating ping statistics + load)
 - [X] - add full automation to find best servers from the closesd locations around country script is run from (calculates ping statistics)
@@ -59,11 +60,26 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __Added autoamtically discovered path of scripts and template__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 31 May 2019 09:51:41 +0200
+    
+    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    Added automatically recognized tun device
+    
+
+* __Changelog__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:50:10 +0200
+    
+    
+    
+
 * __README corrections__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:48:15 +0200
     
-    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
     
 
 * __Changelog__
@@ -125,7 +141,7 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 09:42:34 +0200
     
-    efs/remotes/origin/master, refs/remotes/origin/HEAD, refs/heads/master
+    efs/remotes/origin/initial, refs/heads/master
     few more issues corrected
     
     some cleaning
