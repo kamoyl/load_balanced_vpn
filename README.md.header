@@ -51,7 +51,8 @@ obfuscated, Netherlands servers are used, but, when use:
 ## ToDo
 
 - [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
-- [ ] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
+- [X] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
+- [X] - extra parameter for amount of simultaneus connections, default is 4
 - [X] - checking how many vpn connections is open and stopping all of them, flushing related routing tables and removing related routing rules
 - [X] - automatic nearest country servers collecting and using (checking and calculating ping statistics + load)
 - [X] - add full automation to find best servers from the closesd locations around country script is run from (calculates ping statistics)
