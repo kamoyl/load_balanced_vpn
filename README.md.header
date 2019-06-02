@@ -1,26 +1,29 @@
 # load balanced multi country nordvpn/openvpn
-## purpose
+## purpose of this repo
 
 This repo has been created for something which started to be small and easy solution for NordVPN, but 
 finally become quite sophisticated and useful (for me of course :)) solution for manage high available,
 obfuscated, load balanced solution for my home Internel access...
 
-I'm using NordVPN solution, and I'm quite happy of it, but it is easy to change it to use other VPN-s, 
+I\'m using NordVPN solution, and I\'m quite happy of it, but it is easy to change it to use other VPN-s, 
 ppp or/and pppoe... The only real different thing is that I'm using NordVPN API for finding the least
 loaded servers, the closesed, obfuscated etc... 
 
 It might be either use in any kind of load balancing connections, but then routing, and/or iptables
 suppose to be corrected/changed
 
+PS. During my lond time tests it looks like that simultaneus connections offers about 20% more in 
+download capacity then during use of \"normal\" ISP connection
+
 ## Important links and prerequisites:
 
 I used some sites for making it work, and for understand what is and why it suppose to be that very way :)
 But any suggestion/encourage for correction/optimization/adding features is welcomed...
-Becasue I'm system engineer, and not network one, and despite I understand form this topic quite much, I had
-to make myself understand why ths way, and what is the difference between "normal" TCP/UDP eth connections, and
-what are very important difference when VPN/ppp is used (for example in routing)...
+Becasue I'm system engineer, and not network one, and despite I understand this topic quite much, I had
+to make myself understand why this way, and what is the difference between \"normal\" TCP/UDP eth connections, and
+what are very important difference when VPN/ppp is used (for example in routing process)...
 
-All of it works as butter on... yes, yes, really: rasbpian on Raspberry Pi 3 B+:
+All of it works as butter on... yes, yes, really: rasbpian on Raspberry Pi 3 B+;
 
 [Detailed and good description, but... not for ppp kind](http://www.system-rescue-cd.org/networking/Load-balancing-using-iptables-with-connmark/)\
 [Not as detailed as previous one, and without routing configuration](https://blog.khax.net/2009/12/01/multi-gateway-balancing-with-iptables/)\
@@ -43,8 +46,9 @@ and then use those files as connection parameters data...
 
 just run: openvpn_automatic_HP - the rest will be done automatically; by default - the best (least load), not
 obfuscated, Netherlands servers are used, but, when use:
-* -m - it will try to use NordVPN servers located in nearest countries (also with the least load)
+* -m - it will try to use NordVPN servers located in nearest (from ping time perspective) countries (also with the least load)
 * -h - obfuscated servers will be used (-m and -h might be used together)
+* -M - number of simultaneus connections (from 1 to 6 - restricted only becasue NordVPN restriction)
 * -v - for verbose use
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
 
