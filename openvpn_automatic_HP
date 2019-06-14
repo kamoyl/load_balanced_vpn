@@ -18,11 +18,11 @@ usage()
 {
 echo "
 ${CYAN}Usage:${BRIGHT}${WHITE}
-$0 [-h] [-m] [-M 1-6][-o DIRECTORY] [-v]
+$0 [-H] [-h] [-m] [-M 1-6] [-o DIRECTORY] [-v]
 
 ${NORMAL}${CYAN}This script manages LB HA connections to NordVPN services:${BLUE}
 
-    ${LIME}-h${BLUE} Obfuscated NordVPN servers - smallest load (ommiting national firewalls)
+    ${LIME}-H${BLUE} Obfuscated NordVPN servers - smallest load (ommiting national firewalls)
     ${LIME}-m${BLUE} Multinational NordVPN servers - smallest load (connecting to a few countries servers at once)
     ${LIME}-M${BLUE} Amount of balanced connections
           (defult:  3 simultaneus vpn connections,
@@ -30,7 +30,8 @@ ${NORMAL}${CYAN}This script manages LB HA connections to NordVPN services:${BLUE
     ${LIME}-o${BLUE}  OUTPUT directory - where to store ALL LOGs and TEMP files
           (default directory is: ${CYAN}${HOME}/var${BLUE} and TMP and
            LOG are subdirectories to var)
-    ${LIME}-v${BLUE}  verbose (lots of extra notifications)
+    ${LIME}-v${BLUE} verbose (lots of extra notifications)
+    ${LIME}-h${BLUE} help
     
 
 ${BLUE}please use ${YELLOW}man reports${BLUE} for more details and description${RESET}
@@ -42,7 +43,7 @@ exit 1
 VERBOSE=no
 HIDDEN=no
 MULTINATIONAL=no
-while getopts ":o:M:hmv" ARG
+while getopts ":o:M:Hhmv" ARG
 do
   case "${ARG}" in
         v)
@@ -64,8 +65,10 @@ do
               usage
             fi
             ;;
-        h)
+        H)
             HIDDEN=yes
+            ;;
+        h)  usage
             ;;
         *)
             usage
@@ -202,7 +205,7 @@ iptables -t filter -P OUTPUT ACCEPT
 iptables -t filter -P FORWARD ACCEPT
 
 echo "TUN_DEVICE_NR~NUMBER~VPN_SERVER_NAME~VPN_IP_SERVER~VPN_SERVER~VPN_SERVER_DEV" > "${TMP}/${PRE_TEMP_CONF}"
-echo "VPN_SERVER_NET~VPN_SERVER_ROUTER~VPN_SERVER_LOCALROUTER_IP" > "${TMP}/${POST_TEMP_CONF}"
+echo "TUN_DEVICE_NR~VPN_SERVER_NET~VPN_SERVER_ROUTER~VPN_SERVER_LOCALROUTER_IP" > "${TMP}/${POST_TEMP_CONF}"
 
 #for TUN_DEVICE_NR in $(eval echo "{0..${TUN_MAX_DEV}}")
 for ((TUN_DEVICE_NR=0;TUN_DEVICE_NR<=${TUN_MAX_DEV};TUN_DEVICE_NR++))

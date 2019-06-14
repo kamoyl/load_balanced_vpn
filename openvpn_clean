@@ -42,7 +42,7 @@ iptables -t mangle -X
 iptables -t filter -P INPUT ACCEPT
 iptables -t filter -P OUTPUT ACCEPT
 iptables -t filter -P FORWARD ACCEPT
-
+#ifconfig | grep ^tun | awk -F\: '{print $1}'
 for ((TUN_DEVICE_NR=0;TUN_DEVICE_NR<=${TUN_MAX_DEV};TUN_DEVICE_NR++))
 do
   VPN_SERVER_LOCALROUTER_IP=""
