@@ -47,9 +47,10 @@ and then use those files as connection parameters data...
 just run: openvpn_automatic_HP - the rest will be done automatically; by default - the best (least load), not
 obfuscated, Netherlands servers are used, but, when use:
 * -m - it will try to use NordVPN servers located in nearest (from ping time perspective) countries (also with the least load)
-* -h - obfuscated servers will be used (-m and -h might be used together)
+* -H - obfuscated servers will be used (-m and -h might be used together)
 * -M - number of simultaneus connections (from 1 to 6 - restricted only becasue NordVPN restriction)
 * -v - for verbose use
+* -h - short help of parameters and usage
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
 
 ## ToDo
@@ -66,11 +67,26 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __Updated parameters information in README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:04:01 +0200
+    
+    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
+
+* __Updated readme__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:02:49 +0200
+    
+    
+    Changelog
+    
+
 * __Added help (-h)__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:01:44 +0200
     
-    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
     Changed obfuscation (-h) parameter to capital H (-H)
     
     Preparation for cleaning connections, ip rules and routes properly
