@@ -17,7 +17,9 @@ echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESE
 VERBOSE=yes
 
 MAIN_ETH="enxb827eb330952"
+OPENVPN_TEMPLATE="nordvpn_template.conf"
 NORDVPN_HA_PROCESS="nordvpn_ha_process"
+DEV_VPN=$(grep ^dev "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" | awk '{print $2}')
 LOCAL_GATEWAY="192.168.2.254"
 LB_CONNECTIONS=$(ifconfig | grep tun | awk -F\: '{print $1}' | wc -l)
 TUN_MAX_DEV=$((LB_CONNECTIONS - 1))
@@ -43,18 +45,20 @@ iptables -t filter -P INPUT ACCEPT
 iptables -t filter -P OUTPUT ACCEPT
 iptables -t filter -P FORWARD ACCEPT
 #ifconfig | grep ^tun | awk -F\: '{print $1}'
-for ((TUN_DEVICE_NR=0;TUN_DEVICE_NR<=${TUN_MAX_DEV};TUN_DEVICE_NR++))
+#ifconfig | grep ^tun | awk -F\: '{print $1}' | awk -F${DEV_VPN} '{print $2}'
+for EXISTING_TUN in $(ifconfig | grep ^${DEV_VPN} | awk -F\: '{print $1}')
 do
+  EXISTING_TUN_NR=$(ifconfig | grep ^${EXISTING_TUN} | awk -F\: '{print $1}' | awk -F${DEV_VPN} '{print $2}')
+  EXISTING_TUN_CONN_NR=$((EXISTING_TUN_NR + 1))
+  inf "Cleaning VPN connection ${YELLOW}openvpn@nordvpn_srv${EXISTING_TUN_CONN_NR}.service${CYAN} device: ${YELLOW}${EXISTING_TUN}"
   VPN_SERVER_LOCALROUTER_IP=""
-  NUMBER=$((TUN_DEVICE_NR + 1))
-  VPN_SERVER_DEV="tun${TUN_DEVICE_NR}"
-  inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${NUMBER}${CYAN}), and flushing routing tables of ${YELLOW}${VPN_SERVER_DEV}${CYAN} interface"
-  systemctl stop openvpn@nordvpn_srv${NUMBER}
-  ip -s -d route flush table ${VPN_SERVER_DEV} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  ip -s -d rule del from all fwmark 0x${NUMBER} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  ip -s -d rule del from all fwmark 0x${NUMBER} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${EXISTING_TUN_CONN_NR}${CYAN}), and flushing routing tables of ${YELLOW}${EXISTING_TUN}${CYAN} interface"
+  systemctl stop openvpn@nordvpn_srv${EXISTING_TUN_CONN_NR}
+  ip -s -d route flush table ${EXISTING_TUN} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${EXISTING_TUN_CONN_NR} lookup ${EXISTING_TUN} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${EXISTING_TUN_CONN_NR} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
   IFS=$'\n'
-  for RULE in $(ip rule | grep lookup | grep ${VPN_SERVER_DEV})
+  for RULE in $(ip rule | grep lookup | grep ${EXISTING_TUN})
   do
     SRC=$(echo ${RULE} | awk '{print $3}')
     if [[ ${VERBOSE} == yes ]]
@@ -62,7 +66,7 @@ do
       debug "Removing RULE:      ${YELLOW}${RULE}${BLUE}"
     fi
     (
-      ip -s -d rule del from ${SRC} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+      ip -s -d rule del from ${SRC} lookup ${EXISTING_TUN} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
       if [ $? -eq 0 ]
       then
         if [[ ${VERBOSE} == yes ]]
