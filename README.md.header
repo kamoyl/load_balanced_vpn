@@ -56,7 +56,7 @@ obfuscated, Netherlands servers are used, but, when use:
 ## ToDo
 
 - [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
-- [ ] - cleaning of connections, ip rules and tables works inapropriately, needs to be corrected
+- [X] - cleaning of connections, ip rules and tables works inapropriately, needs to be corrected
 - [X] - added help (-h), so then changed obsucation (hidening to capital H)
 - [X] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
 - [X] - extra parameter for amount of simultaneus connections, default is 4

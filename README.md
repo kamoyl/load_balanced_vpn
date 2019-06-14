@@ -56,7 +56,7 @@ obfuscated, Netherlands servers are used, but, when use:
 ## ToDo
 
 - [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
-- [ ] - cleaning of connections, ip rules and tables works inapropriately, needs to be corrected
+- [X] - cleaning of connections, ip rules and tables works inapropriately, needs to be corrected
 - [X] - added help (-h), so then changed obsucation (hidening to capital H)
 - [X] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
 - [X] - extra parameter for amount of simultaneus connections, default is 4
@@ -67,11 +67,26 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __Rewritten cleaning of all vpn connections, rules and routing tables__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 12:59:34 +0200
+    
+    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
+
+* __Small update__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:04:35 +0200
+    
+    
+    Changelog
+    
+
 * __Updated parameters information in README__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:04:01 +0200
     
-    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
     
 
 * __Updated readme__
