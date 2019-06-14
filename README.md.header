@@ -47,9 +47,10 @@ and then use those files as connection parameters data...
 just run: openvpn_automatic_HP - the rest will be done automatically; by default - the best (least load), not
 obfuscated, Netherlands servers are used, but, when use:
 * -m - it will try to use NordVPN servers located in nearest (from ping time perspective) countries (also with the least load)
-* -h - obfuscated servers will be used (-m and -h might be used together)
+* -H - obfuscated servers will be used (-m and -h might be used together)
 * -M - number of simultaneus connections (from 1 to 6 - restricted only becasue NordVPN restriction)
 * -v - for verbose use
+* -h - short help of parameters and usage
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
 
 ## ToDo

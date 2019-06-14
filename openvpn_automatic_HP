@@ -18,7 +18,7 @@ usage()
 {
 echo "
 ${CYAN}Usage:${BRIGHT}${WHITE}
-$0 [-H] [-h] [-m] [-M 1-6][-o DIRECTORY] [-v]
+$0 [-H] [-h] [-m] [-M 1-6] [-o DIRECTORY] [-v]
 
 ${NORMAL}${CYAN}This script manages LB HA connections to NordVPN services:${BLUE}
 
