@@ -46,9 +46,10 @@ and then use those files as connection parameters data...
 
 just run: openvpn_automatic_HP - the rest will be done automatically; by default - the best (least load), not
 obfuscated, Netherlands servers are used, but, when use:
-* -m - it will try to use NordVPN servers located in nearest (from ping time perspective) countries (also with the least load)
-* -H - obfuscated servers will be used (-m and -h might be used together)
+* -m - it will try to use NordVPN servers located in the nearest (from ping time perspective) countries (also with the least load)
+* -H - obfuscated servers will be used (-M, -m and -H might be used together)
 * -M - number of simultaneus connections (from 1 to 6 - restricted only becasue NordVPN restriction)
+* -c - country in which NordVPN enpoint will be (other options are still possible: -M, -H)
 * -v - for verbose use
 * -h - short help of parameters and usage
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
@@ -56,6 +57,8 @@ obfuscated, Netherlands servers are used, but, when use:
 ## ToDo
 
 - [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
+- [ ] - add option to connect to choosen country
+- [ ] - implement cleaning from openvpn_cleaning into main script instead of current cleaning (which might not always be appropriate)
 - [X] - cleaning of connections, ip rules and tables works inapropriately, needs to be corrected
 - [X] - added help (-h), so then changed obsucation (hidening to capital H)
 - [X] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
@@ -67,11 +70,18 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __Updated Changelog__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 13:00:00 +0200
+    
+    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
+
 * __Rewritten cleaning of all vpn connections, rules and routing tables__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 12:59:34 +0200
     
-    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
     
 
 * __Small update__
