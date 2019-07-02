@@ -43,6 +43,8 @@ exit 1
 VERBOSE=no
 HIDDEN=no
 MULTINATIONAL=no
+IPTABLES=yes
+NFTABLES=no
 while getopts ":o:M:Hhmv" ARG
 do
   case "${ARG}" in
@@ -82,7 +84,7 @@ then
   VAR="${HOME}/var"
   mkdir -p ${VAR}
 else
-  VAR="${o}"
+  VAR=$(readlink -m "${o}")
   mkdir -p ${VAR} > /dev/null 2>&1
   if [ $? -ne 0 ]
   then
@@ -104,6 +106,7 @@ MAIN_ETH="enxb827eb330952"
 OPENVPN_TEMPLATE="nordvpn_template.conf"
 DEV_VPN=$(grep ^dev "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" | awk '{print $2}')
 NORDVPN_HA_PROCESS="nordvpn_ha_process"
+IP_TABLES="ip-nft_tables_${CURRENT_TIMESTAMP}.input"
 LOCAL_GATEWAY="192.168.2.254"
 TUN_MAX_DEV=$((LB_CONNECTIONS - 1))
 PRE_TEMP_CONF="nordvpn_pre_conf_details_${CURRENT_TIMESTAMP}.conf"
@@ -112,17 +115,6 @@ COUNTRY_ID_FILE="COUNTRY_ID_${CURRENT_TIMESTAMP}.txt"
 RECOMMENDED_CLOSEST_FILE="closest_recommended_${CURRENT_TIMESTAMP}.txt"
 
 inf "Cleaning all possible leftovers of OpenVPN connections"
-
-inf "Flushing iptables"
-iptables -t filter -F
-iptables -t filter -X
-iptables -t nat -F
-iptables -t nat -X
-iptables -t mangle -F
-iptables -t mangle -X
-iptables -t filter -P INPUT ACCEPT
-iptables -t filter -P OUTPUT ACCEPT
-iptables -t filter -P FORWARD ACCEPT
 
 for EXISTING_TUN in $(ifconfig | grep ^${DEV_VPN} | awk -F\: '{print $1}')
 do
@@ -241,6 +233,31 @@ then
   debug "RECOMMENDED_SERVERS=${YELLOW}\"${RECOMMENDED_SERVERS}\""
 fi
 
+if [[ ${IPTABLES} == yes ]]
+then
+  inf "Flushing iptables"
+  echo "iptables -t filter -F
+  iptables -t filter -X
+  iptables -t nat -F
+  iptables -t nat -X
+  iptables -t mangle -F
+  iptables -t mangle -X
+  iptables -t filter -P INPUT ACCEPT
+  iptables -t filter -P OUTPUT ACCEPT
+  iptables -t filter -P FORWARD ACCEPT" > "${TMP}/${IP_TABLES}"
+fi
+
+if [[ ${NFTABLES} == yes ]]
+then
+  inf "Flushing nft tables"
+  echo "nft flush table ip filter
+  nft delete chain ip filter (null)
+  nft flush table ip nat
+  nft delete chain ip nat (null)
+  nft flush table ip mangle
+  nft delete chain ip mangle (null)" > "${TMP}/${IP_TABLES}"
+fi
+
 echo "TUN_DEVICE_NR~NUMBER~VPN_SERVER_NAME~VPN_IP_SERVER~VPN_SERVER~VPN_SERVER_DEV" > "${TMP}/${PRE_TEMP_CONF}"
 echo "TUN_DEVICE_NR~VPN_SERVER_NET~VPN_SERVER_ROUTER~VPN_SERVER_LOCALROUTER_IP" > "${TMP}/${POST_TEMP_CONF}"
 
@@ -273,7 +290,7 @@ do
   VPN_SERVER_NET=$(route | grep '0.0.0.0' | grep -v '^0.0.0.0' | grep "${VPN_SERVER_DEV}" | awk '{print $1}')
   VPN_SERVER_ROUTER=$(route | grep '0.0.0.0' | grep -v '^0.0.0.0' | grep "${VPN_SERVER_DEV}" | awk '{print $1}' | sed 's/\.0$/\.1/g')
   VPN_SERVER_LOCALROUTER_IP=$(ip route show | grep ^${VPN_SERVER_NET} | grep ${VPN_SERVER_DEV} | awk '{print $NF}')
-  echo "${VPN_SERVER_NET}~${VPN_SERVER_ROUTER}~${VPN_SERVER_LOCALROUTER_IP}" >> "${TMP}/${POST_TEMP_CONF}"
+  echo "${TUN_DEVICE_NR}~${VPN_SERVER_NET}~${VPN_SERVER_ROUTER}~${VPN_SERVER_LOCALROUTER_IP}" >> "${TMP}/${POST_TEMP_CONF}"
   if [[ ${VERBOSE} == yes ]]
   then
     debug "PARAMETERS of ${YELLOW}VPN${NUMBER}${BLUE}:
@@ -296,40 +313,83 @@ do
   then
     debug "Defining MARKing (mark=${YELLOW}${NUMBER}${BLUE})"
   fi
-  iptables -t mangle -N CONNMARK${NUMBER}
-  iptables -t mangle -A CONNMARK${NUMBER} -j MARK --set-mark ${NUMBER}
-  iptables -t mangle -A CONNMARK${NUMBER} -j CONNMARK --save-mark
-  #iptables -t mangle -A CONNMARK${NUMBER} -j LOG --log-prefix "iptables-mark${NUMBER}: " --log-level info
+  if [[ ${IPTABLES} == yes ]]
+  then
+    echo "iptables -t mangle -N CONNMARK${NUMBER}
+    iptables -t mangle -A CONNMARK${NUMBER} -j MARK --set-mark ${NUMBER}
+    iptables -t mangle -A CONNMARK${NUMBER} -j CONNMARK --save-mark
+    #iptables -t mangle -A CONNMARK${NUMBER} -j LOG --log-prefix \"iptables-mark${NUMBER}: \" --log-level info" >> "${TMP}/${IP_TABLES}"
+  fi
+  if [[ ${NFTABLES} == yes ]]
+  then
+    echo "nft add chain ip mangle CONNMARK${NUMBER}
+    nft add rule ip mangle CONNMARK${NUMBER} counter meta mark set 0x${NUMBER}
+    nft add rule ip mangle CONNMARK${NUMBER} counter ct mark set mark
+    #nft add rule ip mangle CONNMARK${NUMBER} counter log prefix \"iptables-mark${NUMBER}: \" level info" >> "${TMP}/${IP_TABLES}"
+  fi
   if [[ ${VERBOSE} == yes ]]
   then
     debug "SNAT to VPN_SERVER_LOCALROUTER_IP: ${YELLOW}${VPN_SERVER_LOCALROUTER_IP}"
   fi
-  iptables -t nat -N SNAT${NUMBER}
+  if [[ ${IPTABLES} == yes ]]
+  then
+    echo "iptables -t nat -N SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+  fi
+  if [[ ${NFTABLES} == yes ]]
+  then
+    echo "nft add chain ip nat SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+  fi
   if [[ ${VERBOSE} == yes ]]
   then
     debug "VERBOSE is on, so logging all SNAT${YELLOW}${NUMBER}${BLUE} connections"
-    iptables -t nat -A SNAT${NUMBER} -j LOG --log-prefix "snat-to-${VPN_SERVER_LOCALROUTER_IP}: " --log-level info
+    if [[ ${IPTABLES} == yes ]]
+    then
+      echo "iptables -t nat -A SNAT${NUMBER} -j LOG --log-prefix \"snat-to-${VPN_SERVER_LOCALROUTER_IP}: \" --log-level info" >> "${TMP}/${IP_TABLES}"
+    fi
+    if [[ ${NFTABLES} == yes ]]
+    then
+      echo "nft add rule ip nat SNAT${NUMBER} counter log prefix \"snat-to-${VPN_SERVER_LOCALROUTER_IP}: \" level info" >> "${TMP}/${IP_TABLES}"
+    fi
   fi
-  iptables -t nat -A SNAT${NUMBER} -j SNAT --to-source ${VPN_SERVER_LOCALROUTER_IP}
-  # if the mark is zero it means the packet does not belong to an existing connection
-  iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every ${LB_CONNECTIONS} --packet ${TUN_DEVICE_NR} -j CONNMARK${NUMBER}
-  iptables -t nat -A POSTROUTING -o ${VPN_SERVER_DEV} -j SNAT${NUMBER}
+  if [[ ${IPTABLES} == yes ]]
+  then
+    echo "iptables -t nat -A SNAT${NUMBER} -j SNAT --to-source ${VPN_SERVER_LOCALROUTER_IP}
+    iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every ${LB_CONNECTIONS} --packet ${TUN_DEVICE_NR} -j CONNMARK${NUMBER}
+    iptables -t nat -A POSTROUTING -o ${VPN_SERVER_DEV} -j SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+  fi
+  if [[ ${NFTABLES} == yes ]]
+  then
+    echo "nft add rule ip nat SNAT${NUMBER} counter snat to ${VPN_SERVER_LOCALROUTER_IP}
+    nft add rule ip mangle PREROUTING ip protocol tcp ct state new numgen inc mod ${LB_CONNECTIONS} ${TUN_DEVICE_NR} counter jump CONNMARK${NUMBER}
+    nft add rule ip nat POSTROUTING oifname "${VPN_SERVER_DEV}" counter jump SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+  fi
 done
 
 if [[ ${VERBOSE} == yes ]]
 then
   debug "Defining MARKing restore"
 fi
-iptables -t mangle -N RESTOREMARK
-iptables -t mangle -A RESTOREMARK -j CONNMARK --restore-mark
-#iptables -t mangle -A RESTOREMARK -j LOG --log-prefix 'restore-mark: ' --log-level info
-#restore the fwmark on packets that belong to an existing connection
-iptables -t mangle -A PREROUTING -i ${MAIN_ETH} -p tcp -m state --state ESTABLISHED,RELATED -j RESTOREMARK
+if [[ ${IPTABLES} == yes ]]
+then
+  echo "iptables -t mangle -N RESTOREMARK
+  iptables -t mangle -A RESTOREMARK -j CONNMARK --restore-mark
+  #iptables -t mangle -A RESTOREMARK -j LOG --log-prefix \"restore-mark: \" --log-level info
+  iptables -t mangle -A PREROUTING -i ${MAIN_ETH} -p tcp -m state --state ESTABLISHED,RELATED -j RESTOREMARK" >> "${TMP}/${IP_TABLES}"
+fi
+if [[ ${NFTABLES} == yes ]]
+then
+  echo "nft add chain ip mangle RESTOREMARK
+  nft add rule ip mangle RESTOREMARK counter meta mark set ct mark
+  #nft add rule ip mangle RESTOREMARK counter log prefix \"restore-mark: \" level info
+  nft add rule ip mangle PREROUTING iifname "${MAIN_ETH}" ip protocol tcp ct state related,established  counter jump RESTOREMARK" >> "${TMP}/${IP_TABLES}"
+fi
 
 inf "Adding extra route for RedHat7 VMs"
 ip -s -d route del 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route del 192.168.122.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route add 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route add 192.168.122.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-
 ip route flush cache
+
+inf "Applying iptables script: ${YELLOW}${IP_TABLES}"
+source "${TMP}/${IP_TABLES}"
