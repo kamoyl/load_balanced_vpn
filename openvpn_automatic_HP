@@ -114,6 +114,43 @@ POST_TEMP_CONF="nordvpn_post_conf_details_${CURRENT_TIMESTAMP}.conf"
 COUNTRY_ID_FILE="COUNTRY_ID_${CURRENT_TIMESTAMP}.txt"
 RECOMMENDED_CLOSEST_FILE="closest_recommended_${CURRENT_TIMESTAMP}.txt"
 
+inf "Cleaning all possible leftovers of OpenVPN connections"
+
+for EXISTING_TUN in $(ifconfig | grep ^${DEV_VPN} | awk -F\: '{print $1}')
+do
+  EXISTING_TUN_NR=$(ifconfig | grep ^${EXISTING_TUN} | awk -F\: '{print $1}' | awk -F${DEV_VPN} '{print $2}')
+  EXISTING_TUN_CONN_NR=$((EXISTING_TUN_NR + 1))
+  inf "Cleaning VPN connection ${YELLOW}openvpn@nordvpn_srv${EXISTING_TUN_CONN_NR}.service${CYAN} device: ${YELLOW}${EXISTING_TUN}"
+  VPN_SERVER_LOCALROUTER_IP=""
+  inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${EXISTING_TUN_CONN_NR}${CYAN}), and flushing routing tables of ${YELLOW}${EXISTING_TUN}${CYAN} interface"
+  systemctl stop openvpn@nordvpn_srv${EXISTING_TUN_CONN_NR}
+  ip -s -d route flush table ${EXISTING_TUN} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${EXISTING_TUN_CONN_NR} lookup ${EXISTING_TUN} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${EXISTING_TUN_CONN_NR} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  IFS=$'\n'
+  for RULE in $(ip rule | grep lookup | grep ${EXISTING_TUN})
+  do
+    SRC=$(echo ${RULE} | awk '{print $3}')
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "Removing RULE:      ${YELLOW}${RULE}${BLUE}"
+    fi
+    (
+      ip -s -d rule del from ${SRC} lookup ${EXISTING_TUN} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+      if [ $? -eq 0 ]
+      then
+        if [[ ${VERBOSE} == yes ]]
+        then
+          debug "RULE Removed:       ${YELLOW}${RULE}${CYAN}"
+        fi
+      fi
+    ) &
+  done
+  wait
+done
+
+ip route flush cache
+
 if [[ ${VERBOSE} == yes ]]
 then
   debug "Collecting whole list of NordVPN countries and IDs"
@@ -239,31 +276,6 @@ do
   fi
   cp -f "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" /etc/openvpn/nordvpn_srv${NUMBER}.conf
   sed -i "s/remote_variable/${VPN_SERVER}/g" /etc/openvpn/nordvpn_srv${NUMBER}.conf
-  inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${NUMBER}${CYAN}), and flushing routing tables of ${YELLOW}${VPN_SERVER_DEV}${CYAN} interface"
-  systemctl stop openvpn@nordvpn_srv${NUMBER}
-  ip -s -d route flush table ${VPN_SERVER_DEV} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  ip -s -d rule del from all fwmark 0x${NUMBER} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  ip -s -d rule del from all fwmark 0x${NUMBER} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  IFS=$'\n'
-  for RULE in $(ip rule | grep lookup | grep ${VPN_SERVER_DEV})
-  do
-    SRC=$(echo ${RULE} | awk '{print $3}')
-    if [[ ${VERBOSE} == yes ]]
-    then
-      debug "Removing RULE:      ${YELLOW}${RULE}${BLUE}"
-    fi
-    (
-      ip -s -d rule del from ${SRC} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-      if [ $? -eq 0 ]
-      then
-        if [[ ${VERBOSE} == yes ]]
-        then
-          debug "RULE Removed:       ${YELLOW}${RULE}${CYAN}"
-        fi
-      fi
-    ) &
-  done
-  wait
 
   inf "Starting ${YELLOW}openvpn@nordvpn_srv${NUMBER}${CYAN} configuration"
   systemctl start openvpn@nordvpn_srv${NUMBER}
