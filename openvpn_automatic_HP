@@ -13,6 +13,8 @@ fi
 SCRIPTS_HOME=$(dirname ${SCRIPT})
 source "${SCRIPTS_HOME}/config"
 echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESET}"
+#prerequisites:
+#openvpn, jq, iptables, nft, ip
 
 usage()
 {
@@ -107,6 +109,7 @@ OPENVPN_TEMPLATE="nordvpn_template.conf"
 DEV_VPN=$(grep ^dev "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" | awk '{print $2}')
 NORDVPN_HA_PROCESS="nordvpn_ha_process"
 IP_TABLES="ip-nft_tables_${CURRENT_TIMESTAMP}.input"
+RT_TABLES_FILE="/etc/iproute2/rt_tables"
 LOCAL_GATEWAY="192.168.2.254"
 TUN_MAX_DEV=$((LB_CONNECTIONS - 1))
 PRE_TEMP_CONF="nordvpn_pre_conf_details_${CURRENT_TIMESTAMP}.conf"
@@ -225,13 +228,70 @@ then
 else
   usage
 fi
-
 wait
 
 if [[ ${VERBOSE} == yes ]]
 then
   debug "RECOMMENDED_SERVERS=${YELLOW}\"${RECOMMENDED_SERVERS}\""
 fi
+
+inf "Checking if appropriate configuration of routing tables names exists in ${YELLOW}${RT_TABLES_FILE}"
+for ((TUN_DEVICE_NR=0;TUN_DEVICE_NR<=${TUN_MAX_DEV};TUN_DEVICE_NR++))
+do
+  VPN_SERVER_DEV="${DEV_VPN}${TUN_DEVICE_NR}"
+  ROUTING_TABLES_NR=$((150 + TUN_DEVICE_NR))
+  if grep -q ${VPN_SERVER_DEV} ${RT_TABLES_FILE}
+  then
+    ROUTING_TABLES_NR=$(grep ${VPN_SERVER_DEV} ${RT_TABLES_FILE} | awk '{print $1}')
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "  routing table: ${YELLOW}${VPN_SERVER_DEV}${BLUE} configuration exists in ${YELLOW}${RT_TABLES_FILE}${BLUE}, with nr: ${YELLOW}${ROUTING_TABLES_NR}"
+    fi
+  else
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "  routing table: ${YELLOW}${VPN_SERVER_DEV}${BLUE} configuration doesn't exist in ${YELLOW}${RT_TABLES_FILE}${BLUE}, creating"
+    fi
+    if grep -q ${ROUTING_TABLES_NR} ${RT_TABLES_FILE}
+    then
+      if [[ ${VERBOSE} == yes ]]
+      then
+        debug "    There is already routing table with such number: ${YELLOW}${ROUTING_TABLES_NR}${BLUE}, generating new one for ${YELLOW}${VPN_SERVER_DEV}"
+      fi
+      NUMBER=$[ ( $RANDOM % 100 )  + 1 ]
+      ROUTING_TABLES_NR=$((ROUTING_TABLES_NR + NUMBER))
+      if [[ ${VERBOSE} == yes ]]
+      then
+        debug "    Creating routing table ${YELLOW}${VPN_SERVER_DEV}${BLUE} with such number: ${YELLOW}${ROUTING_TABLES_NR}"
+      fi
+      echo "${ROUTING_TABLES_NR}    ${VPN_SERVER_DEV}" >> ${RT_TABLES_FILE}
+      ERROR_CODE="$?"
+      if [ ${ERROR_CODE} -eq 0 ]
+      then
+        if [[ ${VERBOSE} == yes ]]
+        then
+          debug "      Routing table ${YELLOW}${VPN_SERVER_DEV}${BLUE} with number: ${YELLOW}${ROUTING_TABLES_NR}${BLUE} created"
+        else
+          error "      Routing table ${YELLOW}${VPN_SERVER_DEV}${RED} with number: ${YELLOW}${ROUTING_TABLES_NR}${RED} cannot be created"
+          exit 1
+        fi
+      fi
+    else
+      echo "${ROUTING_TABLES_NR}    ${VPN_SERVER_DEV}" >> ${RT_TABLES_FILE}
+      ERROR_CODE="$?"
+      if [ ${ERROR_CODE} -eq 0 ]
+      then
+        if [[ ${VERBOSE} == yes ]]
+        then
+          debug "    Routing table ${YELLOW}${VPN_SERVER_DEV}${BLUE} with number: ${YELLOW}${ROUTING_TABLES_NR}${BLUE} created"
+        else
+          error "    Routing table ${YELLOW}${VPN_SERVER_DEV}${RED} with number: ${YELLOW}${ROUTING_TABLES_NR}${RED} cannot be created"
+          exit 1
+        fi
+      fi
+    fi
+  fi
+done
 
 if [[ ${IPTABLES} == yes ]]
 then
