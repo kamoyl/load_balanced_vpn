@@ -57,7 +57,7 @@ obfuscated, Netherlands servers are used, but, when use:
 ## ToDo
 
 - [ ] - add option to connect to choosen country
-- [ ] - check prerequisites (jq, ip, openvpn, iptables, nft etc)
+- [X] - check prerequisites (jq, ip, openvpn, iptables, nft etc)
 - [ ] - adding support for nftables (so either iptables or nftables) - it is partialy implemented already
 - [X] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
 - [X] - implement cleaning from openvpn_cleaning into main script instead of current cleaning (which might not always be appropriate)
@@ -72,25 +72,55 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __Added prerequisites checking__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 4 Jul 2019 18:54:06 +0200
+    
+    EAD -&gt; refs/heads/3.0.0
+    
+
+* __I forgot to enable iptables :)__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 4 Jul 2019 18:21:24 +0200
+    
+    efs/remotes/origin/3.0.0
+    
+
+* __## Few features__
+
+    [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 19:48:17 +0200
+    
+    
+    * added partial support of nftables
+    
+    * Added cleaning in the beggining of the script
+    
+    * updated README of new features
+    
+    * Changelog
+    
+    * Added checking if approprite rt_tables are added
+    
+
 * __Completely rewritten iptables/nftables management__
 
     [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 10:23:49 +0200
     
-    D
+    
     
 
 * __Added nftables, and applying of tables is at the end instead of during__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 01:19:34 +0200
     
-    D
+    
     
 
 * __Added cleaning of VPN connections to main script__
 
     [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 01:16:02 +0200
     
-    D
+    
     Lots of cleaning of code after cleaning connections
     
 
@@ -98,7 +128,7 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Sun, 16 Jun 2019 23:54:42 +0200
     
-    D
+    efs/remotes/origin/1.0.0, refs/heads/1.0.0
     Corrented some information in README file
     
     Updated changelog
@@ -108,21 +138,21 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 13:00:00 +0200
     
-    D
+    
     
 
 * __Rewritten cleaning of all vpn connections, rules and routing tables__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 12:59:34 +0200
     
-    D
+    
     
 
 * __Small update__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:04:35 +0200
     
-    D
+    
     Changelog
     
 
@@ -130,14 +160,14 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:04:01 +0200
     
-    D
+    
     
 
 * __Updated readme__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:02:49 +0200
     
-    D
+    
     Changelog
     
 
@@ -145,7 +175,7 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 11:01:44 +0200
     
-    D
+    
     Changed obfuscation (-h) parameter to capital H (-H)
     
     Preparation for cleaning connections, ip rules and routes properly
@@ -155,28 +185,28 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Sun, 2 Jun 2019 08:23:19 +0200
     
-    D
+    
     
 
 * __Small issues corrected - related to extra parameter: M, and with closed quotation__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 31 May 2019 12:33:00 +0200
     
-    D
+    
     
 
 * __Updated changelog__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 31 May 2019 09:52:29 +0200
     
-    D
+    
     
 
 * __Added autoamtically discovered path of scripts and template__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 31 May 2019 09:51:41 +0200
     
-    D
+    
     Added automatically recognized tun device
     
 
@@ -184,28 +214,28 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:50:10 +0200
     
-    D
+    
     
 
 * __README corrections__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:48:15 +0200
     
-    D
+    
     
 
 * __Changelog__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:44:11 +0200
     
-    D
+    
     
 
 * __Added extra script for looking into servers statistics__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 30 May 2019 11:42:12 +0200
     
-    D
+    
     Added script for cleaning all openvpn connection, routing tables and rules - it
     is important for automatically find recommended but also THE CLOSEST servers
     
@@ -222,7 +252,7 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Wed, 29 May 2019 21:21:56 +0200
     
-    D
+    
     added .gitignore
     
     removed auth - but it is easy to add
@@ -232,14 +262,14 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 18:43:17 +0200
     
-    D
+    
     
 
 * __Rewritten completely the whole code and did it smaller, and cleaner, and in one loop accordingly to a connection__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 17:03:18 +0200
     
-    D
+    
     removed separated iptables code, and stored it in main script
     
     slightly changed all notifications
@@ -253,7 +283,7 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 09:42:34 +0200
     
-    D
+    efs/remotes/origin/initial, refs/heads/master
     few more issues corrected
     
     some cleaning
@@ -263,48 +293,48 @@ obfuscated, Netherlands servers are used, but, when use:
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:58:27 +0200
     
-    D
+    
     
 
 * __Added zipped nordvpn/openvpn config files link__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:56:07 +0200
     
-    D
+    
     
 
 * __Corrected one weird sentence in README__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:52:36 +0200
     
-    D
+    
     
 
 * __Corrected break lines in README__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:50:57 +0200
     
-    D
+    
     
 
 * __Added a bit of description and help in slightly polished README__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:45:21 +0200
     
-    D
+    
     
 
 * __First commit, after move from code repo__
 
     [root](mailto:root@pi.dom.local) - Mon, 27 May 2019 10:22:36 +0200
     
-    D
+    
     
 
 * __Initial commit__
 
     [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 10:15:37 +0200
     
-    D
+    
 
 
