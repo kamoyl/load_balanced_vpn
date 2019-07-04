@@ -13,6 +13,8 @@ fi
 SCRIPTS_HOME=$(dirname ${SCRIPT})
 source "${SCRIPTS_HOME}/config"
 echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESET}"
+#prerequisites:
+#openvpn, jq, iptables, nft, ip
 
 usage()
 {
@@ -43,6 +45,8 @@ exit 1
 VERBOSE=no
 HIDDEN=no
 MULTINATIONAL=no
+IPTABLES=yes
+NFTABLES=no
 while getopts ":o:M:Hhmv" ARG
 do
   case "${ARG}" in
@@ -82,7 +86,7 @@ then
   VAR="${HOME}/var"
   mkdir -p ${VAR}
 else
-  VAR="${o}"
+  VAR=$(readlink -m "${o}")
   mkdir -p ${VAR} > /dev/null 2>&1
   if [ $? -ne 0 ]
   then
@@ -104,12 +108,51 @@ MAIN_ETH="enxb827eb330952"
 OPENVPN_TEMPLATE="nordvpn_template.conf"
 DEV_VPN=$(grep ^dev "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" | awk '{print $2}')
 NORDVPN_HA_PROCESS="nordvpn_ha_process"
+IP_TABLES="ip-nft_tables_${CURRENT_TIMESTAMP}.input"
+RT_TABLES_FILE="/etc/iproute2/rt_tables"
 LOCAL_GATEWAY="192.168.2.254"
 TUN_MAX_DEV=$((LB_CONNECTIONS - 1))
 PRE_TEMP_CONF="nordvpn_pre_conf_details_${CURRENT_TIMESTAMP}.conf"
 POST_TEMP_CONF="nordvpn_post_conf_details_${CURRENT_TIMESTAMP}.conf"
 COUNTRY_ID_FILE="COUNTRY_ID_${CURRENT_TIMESTAMP}.txt"
 RECOMMENDED_CLOSEST_FILE="closest_recommended_${CURRENT_TIMESTAMP}.txt"
+
+inf "Cleaning all possible leftovers of OpenVPN connections"
+
+for EXISTING_TUN in $(ifconfig | grep ^${DEV_VPN} | awk -F\: '{print $1}')
+do
+  EXISTING_TUN_NR=$(ifconfig | grep ^${EXISTING_TUN} | awk -F\: '{print $1}' | awk -F${DEV_VPN} '{print $2}')
+  EXISTING_TUN_CONN_NR=$((EXISTING_TUN_NR + 1))
+  inf "Cleaning VPN connection ${YELLOW}openvpn@nordvpn_srv${EXISTING_TUN_CONN_NR}.service${CYAN} device: ${YELLOW}${EXISTING_TUN}"
+  VPN_SERVER_LOCALROUTER_IP=""
+  inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${EXISTING_TUN_CONN_NR}${CYAN}), and flushing routing tables of ${YELLOW}${EXISTING_TUN}${CYAN} interface"
+  systemctl stop openvpn@nordvpn_srv${EXISTING_TUN_CONN_NR}
+  ip -s -d route flush table ${EXISTING_TUN} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${EXISTING_TUN_CONN_NR} lookup ${EXISTING_TUN} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  ip -s -d rule del from all fwmark 0x${EXISTING_TUN_CONN_NR} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+  IFS=$'\n'
+  for RULE in $(ip rule | grep lookup | grep ${EXISTING_TUN})
+  do
+    SRC=$(echo ${RULE} | awk '{print $3}')
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "Removing RULE:      ${YELLOW}${RULE}${BLUE}"
+    fi
+    (
+      ip -s -d rule del from ${SRC} lookup ${EXISTING_TUN} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
+      if [ $? -eq 0 ]
+      then
+        if [[ ${VERBOSE} == yes ]]
+        then
+          debug "RULE Removed:       ${YELLOW}${RULE}${CYAN}"
+        fi
+      fi
+    ) &
+  done
+  wait
+done
+
+ip route flush cache
 
 if [[ ${VERBOSE} == yes ]]
 then
@@ -185,7 +228,6 @@ then
 else
   usage
 fi
-
 wait
 
 if [[ ${VERBOSE} == yes ]]
@@ -193,21 +235,92 @@ then
   debug "RECOMMENDED_SERVERS=${YELLOW}\"${RECOMMENDED_SERVERS}\""
 fi
 
-inf "Flushing iptables"
-iptables -t filter -F
-iptables -t filter -X
-iptables -t nat -F
-iptables -t nat -X
-iptables -t mangle -F
-iptables -t mangle -X
-iptables -t filter -P INPUT ACCEPT
-iptables -t filter -P OUTPUT ACCEPT
-iptables -t filter -P FORWARD ACCEPT
+inf "Checking if appropriate configuration of routing tables names exists in ${YELLOW}${RT_TABLES_FILE}"
+for ((TUN_DEVICE_NR=0;TUN_DEVICE_NR<=${TUN_MAX_DEV};TUN_DEVICE_NR++))
+do
+  VPN_SERVER_DEV="${DEV_VPN}${TUN_DEVICE_NR}"
+  ROUTING_TABLES_NR=$((150 + TUN_DEVICE_NR))
+  if grep -q ${VPN_SERVER_DEV} ${RT_TABLES_FILE}
+  then
+    ROUTING_TABLES_NR=$(grep ${VPN_SERVER_DEV} ${RT_TABLES_FILE} | awk '{print $1}')
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "  routing table: ${YELLOW}${VPN_SERVER_DEV}${BLUE} configuration exists in ${YELLOW}${RT_TABLES_FILE}${BLUE}, with nr: ${YELLOW}${ROUTING_TABLES_NR}"
+    fi
+  else
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "  routing table: ${YELLOW}${VPN_SERVER_DEV}${BLUE} configuration doesn't exist in ${YELLOW}${RT_TABLES_FILE}${BLUE}, creating"
+    fi
+    if grep -q ${ROUTING_TABLES_NR} ${RT_TABLES_FILE}
+    then
+      if [[ ${VERBOSE} == yes ]]
+      then
+        debug "    There is already routing table with such number: ${YELLOW}${ROUTING_TABLES_NR}${BLUE}, generating new one for ${YELLOW}${VPN_SERVER_DEV}"
+      fi
+      NUMBER=$[ ( $RANDOM % 100 )  + 1 ]
+      ROUTING_TABLES_NR=$((ROUTING_TABLES_NR + NUMBER))
+      if [[ ${VERBOSE} == yes ]]
+      then
+        debug "    Creating routing table ${YELLOW}${VPN_SERVER_DEV}${BLUE} with such number: ${YELLOW}${ROUTING_TABLES_NR}"
+      fi
+      echo "${ROUTING_TABLES_NR}    ${VPN_SERVER_DEV}" >> ${RT_TABLES_FILE}
+      ERROR_CODE="$?"
+      if [ ${ERROR_CODE} -eq 0 ]
+      then
+        if [[ ${VERBOSE} == yes ]]
+        then
+          debug "      Routing table ${YELLOW}${VPN_SERVER_DEV}${BLUE} with number: ${YELLOW}${ROUTING_TABLES_NR}${BLUE} created"
+        else
+          error "      Routing table ${YELLOW}${VPN_SERVER_DEV}${RED} with number: ${YELLOW}${ROUTING_TABLES_NR}${RED} cannot be created"
+          exit 1
+        fi
+      fi
+    else
+      echo "${ROUTING_TABLES_NR}    ${VPN_SERVER_DEV}" >> ${RT_TABLES_FILE}
+      ERROR_CODE="$?"
+      if [ ${ERROR_CODE} -eq 0 ]
+      then
+        if [[ ${VERBOSE} == yes ]]
+        then
+          debug "    Routing table ${YELLOW}${VPN_SERVER_DEV}${BLUE} with number: ${YELLOW}${ROUTING_TABLES_NR}${BLUE} created"
+        else
+          error "    Routing table ${YELLOW}${VPN_SERVER_DEV}${RED} with number: ${YELLOW}${ROUTING_TABLES_NR}${RED} cannot be created"
+          exit 1
+        fi
+      fi
+    fi
+  fi
+done
+
+if [[ ${IPTABLES} == yes ]]
+then
+  inf "Flushing iptables"
+  echo "iptables -t filter -F
+  iptables -t filter -X
+  iptables -t nat -F
+  iptables -t nat -X
+  iptables -t mangle -F
+  iptables -t mangle -X
+  iptables -t filter -P INPUT ACCEPT
+  iptables -t filter -P OUTPUT ACCEPT
+  iptables -t filter -P FORWARD ACCEPT" > "${TMP}/${IP_TABLES}"
+fi
+
+if [[ ${NFTABLES} == yes ]]
+then
+  inf "Flushing nft tables"
+  echo "nft flush table ip filter
+  nft delete chain ip filter (null)
+  nft flush table ip nat
+  nft delete chain ip nat (null)
+  nft flush table ip mangle
+  nft delete chain ip mangle (null)" > "${TMP}/${IP_TABLES}"
+fi
 
 echo "TUN_DEVICE_NR~NUMBER~VPN_SERVER_NAME~VPN_IP_SERVER~VPN_SERVER~VPN_SERVER_DEV" > "${TMP}/${PRE_TEMP_CONF}"
 echo "TUN_DEVICE_NR~VPN_SERVER_NET~VPN_SERVER_ROUTER~VPN_SERVER_LOCALROUTER_IP" > "${TMP}/${POST_TEMP_CONF}"
 
-#for TUN_DEVICE_NR in $(eval echo "{0..${TUN_MAX_DEV}}")
 for ((TUN_DEVICE_NR=0;TUN_DEVICE_NR<=${TUN_MAX_DEV};TUN_DEVICE_NR++))
 do
   VPN_SERVER_LOCALROUTER_IP=""
@@ -223,31 +336,6 @@ do
   fi
   cp -f "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" /etc/openvpn/nordvpn_srv${NUMBER}.conf
   sed -i "s/remote_variable/${VPN_SERVER}/g" /etc/openvpn/nordvpn_srv${NUMBER}.conf
-  inf "Stopping old NordVPN connection (${YELLOW}nordvpn_srv${NUMBER}${CYAN}), and flushing routing tables of ${YELLOW}${VPN_SERVER_DEV}${CYAN} interface"
-  systemctl stop openvpn@nordvpn_srv${NUMBER}
-  ip -s -d route flush table ${VPN_SERVER_DEV} > "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  ip -s -d rule del from all fwmark 0x${NUMBER} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  ip -s -d rule del from all fwmark 0x${NUMBER} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-  IFS=$'\n'
-  for RULE in $(ip rule | grep lookup | grep ${VPN_SERVER_DEV})
-  do
-    SRC=$(echo ${RULE} | awk '{print $3}')
-    if [[ ${VERBOSE} == yes ]]
-    then
-      debug "Removing RULE:      ${YELLOW}${RULE}${BLUE}"
-    fi
-    (
-      ip -s -d rule del from ${SRC} lookup ${VPN_SERVER_DEV} >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-      if [ $? -eq 0 ]
-      then
-        if [[ ${VERBOSE} == yes ]]
-        then
-          debug "RULE Removed:       ${YELLOW}${RULE}${CYAN}"
-        fi
-      fi
-    ) &
-  done
-  wait
 
   inf "Starting ${YELLOW}openvpn@nordvpn_srv${NUMBER}${CYAN} configuration"
   systemctl start openvpn@nordvpn_srv${NUMBER}
@@ -262,7 +350,7 @@ do
   VPN_SERVER_NET=$(route | grep '0.0.0.0' | grep -v '^0.0.0.0' | grep "${VPN_SERVER_DEV}" | awk '{print $1}')
   VPN_SERVER_ROUTER=$(route | grep '0.0.0.0' | grep -v '^0.0.0.0' | grep "${VPN_SERVER_DEV}" | awk '{print $1}' | sed 's/\.0$/\.1/g')
   VPN_SERVER_LOCALROUTER_IP=$(ip route show | grep ^${VPN_SERVER_NET} | grep ${VPN_SERVER_DEV} | awk '{print $NF}')
-  echo "${VPN_SERVER_NET}~${VPN_SERVER_ROUTER}~${VPN_SERVER_LOCALROUTER_IP}" >> "${TMP}/${POST_TEMP_CONF}"
+  echo "${TUN_DEVICE_NR}~${VPN_SERVER_NET}~${VPN_SERVER_ROUTER}~${VPN_SERVER_LOCALROUTER_IP}" >> "${TMP}/${POST_TEMP_CONF}"
   if [[ ${VERBOSE} == yes ]]
   then
     debug "PARAMETERS of ${YELLOW}VPN${NUMBER}${BLUE}:
@@ -281,44 +369,88 @@ do
   ip -s -d rule add fwmark ${NUMBER} table "${VPN_SERVER_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 
   inf "Aplying LoadBalancing HA iptables configuration"
-  if [[ ${VERBOSE} == yes ]]
+  if [[ ${IPTABLES} == yes ]]
   then
-    debug "Defining MARKing (mark=${YELLOW}${NUMBER}${BLUE})"
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "Defining MARKing (mark=${YELLOW}${NUMBER}${BLUE})"
+    fi
+    echo "iptables -t mangle -N CONNMARK${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "iptables -t mangle -A CONNMARK${NUMBER} -j MARK --set-mark ${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "iptables -t mangle -A CONNMARK${NUMBER} -j CONNMARK --save-mark" >> "${TMP}/${IP_TABLES}"
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "SNAT to VPN_SERVER_LOCALROUTER_IP: ${YELLOW}${VPN_SERVER_LOCALROUTER_IP}"
+    fi
+    echo "iptables -t nat -N SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "iptables -t nat -A SNAT${NUMBER} -j SNAT --to-source ${VPN_SERVER_LOCALROUTER_IP}" >> "${TMP}/${IP_TABLES}"
+    echo "iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every ${LB_CONNECTIONS} --packet ${TUN_DEVICE_NR} -j CONNMARK${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "iptables -t nat -A POSTROUTING -o ${VPN_SERVER_DEV} -j SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "VERBOSE is on, so logging is enabled"
+      echo "iptables -t nat -A SNAT${NUMBER} -j LOG --log-prefix \"snat-to-${VPN_SERVER_LOCALROUTER_IP}: \" --log-level info" >> "${TMP}/${IP_TABLES}"
+      echo "iptables -t mangle -A CONNMARK${NUMBER} -j LOG --log-prefix \"iptables-mark${NUMBER}: \" --log-level info" >> "${TMP}/${IP_TABLES}"
+    fi
   fi
-  iptables -t mangle -N CONNMARK${NUMBER}
-  iptables -t mangle -A CONNMARK${NUMBER} -j MARK --set-mark ${NUMBER}
-  iptables -t mangle -A CONNMARK${NUMBER} -j CONNMARK --save-mark
-  #iptables -t mangle -A CONNMARK${NUMBER} -j LOG --log-prefix "iptables-mark${NUMBER}: " --log-level info
-  if [[ ${VERBOSE} == yes ]]
+  if [[ ${NFTABLES} == yes ]]
   then
-    debug "SNAT to VPN_SERVER_LOCALROUTER_IP: ${YELLOW}${VPN_SERVER_LOCALROUTER_IP}"
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "Defining MARKing (mark=${YELLOW}${NUMBER}${BLUE})"
+    fi
+    echo "nft add chain ip mangle CONNMARK${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "nft add rule ip mangle CONNMARK${NUMBER} counter meta mark set 0x${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "nft add rule ip mangle CONNMARK${NUMBER} counter ct mark set mark" >> "${TMP}/${IP_TABLES}"
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "SNAT to VPN_SERVER_LOCALROUTER_IP: ${YELLOW}${VPN_SERVER_LOCALROUTER_IP}"
+    fi
+    echo "nft add chain ip nat SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "nft add rule ip nat SNAT${NUMBER} counter snat to ${VPN_SERVER_LOCALROUTER_IP}" >> "${TMP}/${IP_TABLES}"
+    echo "nft add rule ip mangle PREROUTING ip protocol tcp ct state new numgen inc mod ${LB_CONNECTIONS} ${TUN_DEVICE_NR} counter jump CONNMARK${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    echo "nft add rule ip nat POSTROUTING oifname "${VPN_SERVER_DEV}" counter jump SNAT${NUMBER}" >> "${TMP}/${IP_TABLES}"
+    if [[ ${VERBOSE} == yes ]]
+    then
+      debug "VERBOSE is on, so logging is enabled"
+      echo "nft add rule ip nat SNAT${NUMBER} counter log prefix \"snat-to-${VPN_SERVER_LOCALROUTER_IP}: \" level info" >> "${TMP}/${IP_TABLES}"
+      echo "nft add rule ip mangle CONNMARK${NUMBER} counter log prefix \"iptables-mark${NUMBER}: \" level info" >> "${TMP}/${IP_TABLES}"
+    fi
   fi
-  iptables -t nat -N SNAT${NUMBER}
-  if [[ ${VERBOSE} == yes ]]
-  then
-    debug "VERBOSE is on, so logging all SNAT${YELLOW}${NUMBER}${BLUE} connections"
-    iptables -t nat -A SNAT${NUMBER} -j LOG --log-prefix "snat-to-${VPN_SERVER_LOCALROUTER_IP}: " --log-level info
-  fi
-  iptables -t nat -A SNAT${NUMBER} -j SNAT --to-source ${VPN_SERVER_LOCALROUTER_IP}
-  # if the mark is zero it means the packet does not belong to an existing connection
-  iptables -t mangle -A PREROUTING -p tcp -m state --state NEW -m statistic --mode nth --every ${LB_CONNECTIONS} --packet ${TUN_DEVICE_NR} -j CONNMARK${NUMBER}
-  iptables -t nat -A POSTROUTING -o ${VPN_SERVER_DEV} -j SNAT${NUMBER}
 done
 
 if [[ ${VERBOSE} == yes ]]
 then
   debug "Defining MARKing restore"
 fi
-iptables -t mangle -N RESTOREMARK
-iptables -t mangle -A RESTOREMARK -j CONNMARK --restore-mark
-#iptables -t mangle -A RESTOREMARK -j LOG --log-prefix 'restore-mark: ' --log-level info
-#restore the fwmark on packets that belong to an existing connection
-iptables -t mangle -A PREROUTING -i ${MAIN_ETH} -p tcp -m state --state ESTABLISHED,RELATED -j RESTOREMARK
+
+if [[ ${IPTABLES} == yes ]]
+then
+  echo "iptables -t mangle -N RESTOREMARK" >> "${TMP}/${IP_TABLES}"
+  echo "iptables -t mangle -A RESTOREMARK -j CONNMARK --restore-mark" >> "${TMP}/${IP_TABLES}"
+  echo "iptables -t mangle -A PREROUTING -i ${MAIN_ETH} -p tcp -m state --state ESTABLISHED,RELATED -j RESTOREMARK" >> "${TMP}/${IP_TABLES}"
+  if [[ ${VERBOSE} == yes ]]
+  then
+    echo "iptables -t mangle -A RESTOREMARK -j LOG --log-prefix \"restore-mark: \" --log-level info" >> "${TMP}/${IP_TABLES}"
+  fi
+fi
+if [[ ${NFTABLES} == yes ]]
+then
+  echo "nft add chain ip mangle RESTOREMARK" >> "${TMP}/${IP_TABLES}"
+  echo "nft add rule ip mangle RESTOREMARK counter meta mark set ct mark" >> "${TMP}/${IP_TABLES}"
+  echo "nft add rule ip mangle PREROUTING iifname "${MAIN_ETH}" ip protocol tcp ct state related,established  counter jump RESTOREMARK" >> "${TMP}/${IP_TABLES}"
+  if [[ ${VERBOSE} == yes ]]
+  then
+    echo "nft add rule ip mangle RESTOREMARK counter log prefix \"restore-mark: \" level info" >> "${TMP}/${IP_TABLES}"
+  fi
+fi
 
 inf "Adding extra route for RedHat7 VMs"
 ip -s -d route del 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route del 192.168.122.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route add 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 ip -s -d route add 192.168.122.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
-
 ip route flush cache
+
+inf "Applying iptables script: ${YELLOW}${IP_TABLES}"
+source "${TMP}/${IP_TABLES}"

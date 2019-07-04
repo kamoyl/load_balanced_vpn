@@ -56,9 +56,11 @@ obfuscated, Netherlands servers are used, but, when use:
 
 ## ToDo
 
-- [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
 - [ ] - add option to connect to choosen country
-- [ ] - implement cleaning from openvpn_cleaning into main script instead of current cleaning (which might not always be appropriate)
+- [ ] - check prerequisites (jq, ip, openvpn, iptables, nft etc)
+- [ ] - adding support for nftables (so either iptables or nftables) - it is partialy implemented already
+- [X] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
+- [X] - implement cleaning from openvpn_cleaning into main script instead of current cleaning (which might not always be appropriate)
 - [X] - cleaning of connections, ip rules and tables works inapropriately, needs to be corrected
 - [X] - added help (-h), so then changed obsucation (hidening to capital H)
 - [X] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
