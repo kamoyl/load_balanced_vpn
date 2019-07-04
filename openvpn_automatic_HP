@@ -13,8 +13,27 @@ fi
 SCRIPTS_HOME=$(dirname ${SCRIPT})
 source "${SCRIPTS_HOME}/config"
 echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESET}"
-#prerequisites:
-#openvpn, jq, iptables, nft, ip
+
+inf "Checking prerequisites:"
+if ! command -v openvpn > /dev/null
+then
+  warn "Please install ${YELLOW}openvpn${WINE} before use"
+fi
+if ! command -v jq > /dev/null
+then
+  warn "Please install ${YELLOW}jq${WINE} before use"
+fi
+if ! command -v ip > /dev/null
+then
+  warn "Please install ${YELLOW}ip${WINE} before use"
+fi
+if ! command -v iptables > /dev/null
+then
+  if ! command -v nft > /dev/null
+  then
+    warn "Please install ${YELLOW}iptables/nft${WINE} before use"
+  fi
+fi
 
 usage()
 {
