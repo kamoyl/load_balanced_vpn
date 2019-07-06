@@ -173,6 +173,15 @@ done
 
 ip route flush cache
 
+  for i in {3..0}
+  do
+    echo -ne "Starting in:  .   ${i}   .  "'\r'
+    sleep .50
+    echo -ne "Starting in:    . ${i} .    "'\r'
+    sleep .50
+  done
+  echo -ne ""'\r'
+
 if [[ ${VERBOSE} == yes ]]
 then
   debug "Collecting whole list of NordVPN countries and IDs"
@@ -463,6 +472,10 @@ then
     echo "nft add rule ip mangle RESTOREMARK counter log prefix \"restore-mark: \" level info" >> "${TMP}/${IP_TABLES}"
   fi
 fi
+
+#only for nicer logging
+VPN_SERVER_LOCALROUTER_IP=""
+VPN_IP_SERVER=""
 
 inf "Adding extra route for RedHat7 VMs"
 ip -s -d route del 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
