@@ -72,3 +72,63 @@ obfuscated, Netherlands servers are used, but, when use:
 
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
+
+* __Added options to connect to different countries at once - funny results form IP localization services :)__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Tue, 28 May 2019 09:42:34 +0200
+    
+    efs/remotes/origin/initial, refs/heads/master
+    few more issues corrected
+    
+    some cleaning
+    
+
+* __small correction to README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:58:27 +0200
+    
+    
+    
+
+* __Added zipped nordvpn/openvpn config files link__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:56:07 +0200
+    
+    
+    
+
+* __Corrected one weird sentence in README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:52:36 +0200
+    
+    
+    
+
+* __Corrected break lines in README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:50:57 +0200
+    
+    
+    
+
+* __Added a bit of description and help in slightly polished README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 11:45:21 +0200
+    
+    
+    
+
+* __First commit, after move from code repo__
+
+    [root](mailto:root@pi.dom.local) - Mon, 27 May 2019 10:22:36 +0200
+    
+    
+    
+
+* __Initial commit__
+
+    [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Mon, 27 May 2019 10:15:37 +0200
+    
+    
+
+
