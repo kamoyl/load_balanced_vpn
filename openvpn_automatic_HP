@@ -14,7 +14,7 @@ SCRIPTS_HOME=$(dirname ${SCRIPT})
 source "${SCRIPTS_HOME}/config"
 echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESET}"
 
-inf "Checking prerequisites:"
+inf "Checking prerequisites (openvpn, jq, ip, iptables, nft):"
 if ! command -v openvpn > /dev/null
 then
   warn "Please install ${YELLOW}openvpn${WINE} before use"
@@ -39,34 +39,35 @@ usage()
 {
 echo "
 ${CYAN}Usage:${BRIGHT}${WHITE}
-$0 [-H] [-h] [-m] [-M 1-6] [-o DIRECTORY] [-v]
+$0 [-H] [-h] [-m] [-M 1-6] [-o DIRECTORY] [-v] [-c] [-I [ID]]
 
 ${NORMAL}${CYAN}This script manages LB HA connections to NordVPN services:${BLUE}
 
     ${LIME}-H${BLUE} Obfuscated NordVPN servers - smallest load (ommiting national firewalls)
     ${LIME}-m${BLUE} Multinational NordVPN servers - smallest load (connecting to a few countries servers at once)
+    ${LIME}-I${BLUE} Best none-obfuscated servers from a country ID
     ${LIME}-M${BLUE} Amount of balanced connections
           (defult:  3 simultaneus vpn connections,
            max:     6 simultaneus vpn connections.)
-    ${LIME}-o${BLUE}  OUTPUT directory - where to store ALL LOGs and TEMP files
+    ${LIME}-o${BLUE} OUTPUT directory - where to store ALL LOGs and TEMP files
           (default directory is: ${CYAN}${HOME}/var${BLUE} and TMP and
            LOG are subdirectories to var)
+    ${LIME}-c${BLUE} CLEAN, makes only cleaning VPN connections, flushing routing tables, and iptables
     ${LIME}-v${BLUE} verbose (lots of extra notifications)
     ${LIME}-h${BLUE} help
     
-
-${BLUE}please use ${YELLOW}man reports${BLUE} for more details and description${RESET}
-"
+${RESET}"
 1>&2;
 exit 1
 }
 
 VERBOSE=no
 HIDDEN=no
+CLEAN=no
 MULTINATIONAL=no
 IPTABLES=yes
 NFTABLES=no
-while getopts ":o:M:Hhmv" ARG
+while getopts ":o:M:I:Hhmvc" ARG
 do
   case "${ARG}" in
         v)
@@ -88,8 +89,21 @@ do
               usage
             fi
             ;;
+        I)  
+            I=${OPTARG}
+            if [[ ${I} =~ ^[0-9]+$ ]]
+            then
+              COUNTRY_ID=${I}
+            else
+              error "COUNTRYID must be a numeric value"
+              inf "Check all COUNTRY_ID values this way: ${YELLOW}curl --silent \"https://api.nordvpn.com/v1/servers/countries\" | jq --raw-output '.[] | . as \$parent | [\$parent.name, \$parent.id] | \"\(.[0]) [\(.[1])]\"'"
+              exit 1
+            fi
+            ;;
         H)
             HIDDEN=yes
+            ;;
+        c)  CLEAN=yes
             ;;
         h)  usage
             ;;
@@ -122,7 +136,7 @@ if [ -z ${M} ]
 then
   LB_CONNECTIONS="4"
 fi
-  
+
 MAIN_ETH="enxb827eb330952"
 OPENVPN_TEMPLATE="nordvpn_template.conf"
 DEV_VPN=$(grep ^dev "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" | awk '{print $2}')
@@ -135,6 +149,9 @@ PRE_TEMP_CONF="nordvpn_pre_conf_details_${CURRENT_TIMESTAMP}.conf"
 POST_TEMP_CONF="nordvpn_post_conf_details_${CURRENT_TIMESTAMP}.conf"
 COUNTRY_ID_FILE="COUNTRY_ID_${CURRENT_TIMESTAMP}.txt"
 RECOMMENDED_CLOSEST_FILE="closest_recommended_${CURRENT_TIMESTAMP}.txt"
+# enable /proc/sys/net/ipv4/conf/*/secure_redirects
+# net.ipv4.send_redirects = 0
+# net.ipv4.accept_redirects = 0 
 
 inf "Cleaning all possible leftovers of OpenVPN connections"
 
@@ -173,6 +190,21 @@ done
 
 ip route flush cache
 
+if [[ ${CLEAN} == yes ]]
+then
+  inf "Only cleaning is done, exitting"
+  exit 0
+fi
+
+for i in {5..0}
+do
+  echo -ne "Starting in:  .   ${i}   .  "'\r'
+  sleep .50
+  echo -ne "Starting in:    . ${i} .    "'\r'
+  sleep .50
+done
+echo -ne ""'\r'
+
 if [[ ${VERBOSE} == yes ]]
 then
   debug "Collecting whole list of NordVPN countries and IDs"
@@ -190,13 +222,20 @@ fi
 
 if [[ ${MULTINATIONAL} == no ]]
 then
-  inf "Picking up the least loaded and the closest NordVPN servers"
-  if [[ ${HIDDEN} == no ]]
+  if [ -z ${COUNTRY_ID} ]
   then
-    RECOMMENDED_SERVERS=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_standard" | jq --raw-output --slurp " .[] | sort_by(.load) | limit(${LB_CONNECTIONS};.[]) | [.hostname] | \"\(.[0])\"")
-  elif [[ ${HIDDEN} == yes ]]
-  then
-    RECOMMENDED_SERVERS=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_obfuscated_servers" | jq --raw-output --slurp " .[] | sort_by(.load) | limit(${LB_CONNECTIONS};.[]) | [.hostname] | \"\(.[0])\"")
+    inf "Picking up the least loaded and the closest NordVPN servers"
+    if [[ ${HIDDEN} == no ]]
+    then
+      RECOMMENDED_SERVERS=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_standard" | jq --raw-output --slurp " .[] | sort_by(.load) | limit(${LB_CONNECTIONS};.[]) | [.hostname] | \"\(.[0])\"")
+    elif [[ ${HIDDEN} == yes ]]
+    then
+      RECOMMENDED_SERVERS=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[servers_groups\]\[identifier\]=legacy_obfuscated_servers" | jq --raw-output --slurp " .[] | sort_by(.load) | limit(${LB_CONNECTIONS};.[]) | [.hostname] | \"\(.[0])\"")
+    fi
+  else
+    COUNTRY=$(curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | . as $parent | [$parent.name, $parent.id] | "\(.[0]) [\(.[1])]"' | grep 174 | awk '{print $1}')
+    inf "Picking up the least loaded NordVPN server from country: ${YELLOW}${COUNTRY}${CYAN} (${YELLOW}${COUNTRY_ID}${CYAN})"
+    RECOMMENDED_SERVERS=$(curl --silent "https://api.nordvpn.com/v1/servers/recommendations?filters\[country_id\]=${COUNTRY_ID}&limit=${LB_CONNECTIONS}" | jq --raw-output '.[].hostname')
   fi
 elif [[ ${MULTINATIONAL} == yes ]]
 then
@@ -387,7 +426,7 @@ do
   ip -s -d route add default via "${VPN_SERVER_ROUTER}" dev "${VPN_SERVER_DEV}" table "${VPN_SERVER_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
   ip -s -d rule add fwmark ${NUMBER} table "${VPN_SERVER_DEV}" >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1
 
-  inf "Aplying LoadBalancing HA iptables configuration"
+  inf "Adding LoadBalancing HA iptables configuration"
   if [[ ${IPTABLES} == yes ]]
   then
     if [[ ${VERBOSE} == yes ]]
@@ -463,6 +502,10 @@ then
     echo "nft add rule ip mangle RESTOREMARK counter log prefix \"restore-mark: \" level info" >> "${TMP}/${IP_TABLES}"
   fi
 fi
+
+#only for nicer logging
+VPN_SERVER_LOCALROUTER_IP=""
+VPN_IP_SERVER=""
 
 inf "Adding extra route for RedHat7 VMs"
 ip -s -d route del 192.168.100.0/24 via 192.168.2.10 >> "${LOG}/${NORDVPN_HA_PROCESS}_${CURRENT_TIMESTAMP}.log" 2>&1

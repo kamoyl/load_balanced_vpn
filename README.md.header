@@ -49,14 +49,15 @@ obfuscated, Netherlands servers are used, but, when use:
 * -m - it will try to use NordVPN servers located in the nearest (from ping time perspective) countries (also with the least load)
 * -H - obfuscated servers will be used (-M, -m and -H might be used together)
 * -M - number of simultaneus connections (from 1 to 6 - restricted only becasue NordVPN restriction)
-* -c - country in which NordVPN enpoint will be (other options are still possible: -M, -H)
+* -I - ID number of a country from which least loaded servers hould be picked up
+* -c - cleaning all openvpn connections, routes and iptables
 * -v - for verbose use
 * -h - short help of parameters and usage
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
 
 ## ToDo
 
-- [ ] - add option to connect to choosen country
+- [X] - add option to connect to choosen country
 - [X] - check prerequisites (jq, ip, openvpn, iptables, nft etc)
 - [ ] - adding support for nftables (so either iptables or nftables) - it is partialy implemented already
 - [X] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
