@@ -57,6 +57,7 @@ obfuscated, Netherlands servers are used, but, when use:
 
 ## ToDo
 
+- [ ] - control if API of NordVPN works, or just send back NULL - then stop
 - [X] - add option to connect to choosen country
 - [X] - check prerequisites (jq, ip, openvpn, iptables, nft etc)
 - [ ] - adding support for nftables (so either iptables or nftables) - it is partialy implemented already
