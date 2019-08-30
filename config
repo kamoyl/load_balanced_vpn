@@ -51,6 +51,30 @@ progress_indicator()
   sleep 0.15
 }
 
+git_branch () { git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'; }
+export -f git_branch
+
+git_repository () { basename $(git remote -v | grep fetch | awk '{print $2}' | sed 's/\.git//g'); }
+export -f git_repository
+
+log_tmp_maintenance()
+{
+
+inf "Archiving all logs and tmp files"
+tar -cJf "${LOG}.tar.xz" "${LOG}" > /dev/null 2>&1 &
+tar -cJf "${TMP}.tar.xz" "${TMP}" > /dev/null 2>&1 &
+wait
+if [ $? -eq 0 ]
+then
+  rm -rf "${TMP}"
+  rm -rf "${LOG}"
+  inf "All tmp and log files has just been archived in: ${YELLOW}${VAR}"
+else
+  inf "I couldn't archive tmp and log files"
+fi
+
+}
+
 exec 3>&2 # logging stream (file descriptor 3) defaults to STDERR
 verbosity=5 # default to show warnings
 silent_lvl=0

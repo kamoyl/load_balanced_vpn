@@ -10,9 +10,21 @@ else
   SCRIPT=$(readlink -f $0)
 fi
 
-SCRIPTS_HOME=$(dirname ${SCRIPT})
-source "${SCRIPTS_HOME}/config"
-echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 $@ ${YELLOW} ]${RESET}"
+SCRIPTS_HOME=$(dirname "${SCRIPT}")
+PARAMETERS=$(echo "$@" | sed 's/\-l .//g')
+
+if [ $(caller | awk '{print $1}') -eq 0 ]
+then
+  CALLING=0
+  source "${SCRIPTS_HOME}/config"
+  echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 ${PARAMETERS} ${YELLOW} ]${RESET}"
+else
+  CALLING=1
+  if [[ ${VERBOSE} == yes ]]
+  then
+    debug "${YELLOW}[ ${LIME}$(echo $(caller | awk '{print $2}') | awk -F\/ '{print $NF}') ${YELLOW}calls (in line: ${LIME}$(caller | awk '{print $1}')${YELLOW}) ${LIME}$(echo ${BASH_SOURCE} | awk -F\/ '{print $NF}') ${PARAMETERS} ${YELLOW} ]"
+  fi
+fi
 
 usage()
 {
@@ -79,27 +91,14 @@ do
 done
 shift $((OPTIND-1))
 
-if [ -z ${o} ]
+if [ ${CALLING} -eq 0 ]
 then
-  VAR="${HOME}/var"
-  mkdir -p ${VAR}
-else
-  VAR=$(readlink -m "${o}")
-  mkdir -p ${VAR} > /dev/null 2>&1
-  if [ $? -ne 0 ]
-  then
-    error "I have no permissions to create OUTPUT directory here"
-    exit 1
-  fi
+  source "${SCRIPTS_HOME}/var_management"
 fi
 
-TMP="${VAR}/tmp"
-mkdir -p ${TMP}
-LOG="${VAR}/log"
-mkdir -p ${LOG}
 if [ -z ${M} ]
 then
-  LB_CONNECTIONS="4"
+  LB_CONNECTIONS="3"
 fi
   
 MAIN_ETH="enxb827eb330952"
