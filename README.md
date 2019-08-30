@@ -49,16 +49,19 @@ obfuscated, Netherlands servers are used, but, when use:
 * -m - it will try to use NordVPN servers located in the nearest (from ping time perspective) countries (also with the least load)
 * -H - obfuscated servers will be used (-M, -m and -H might be used together)
 * -M - number of simultaneus connections (from 1 to 6 - restricted only becasue NordVPN restriction)
-* -c - country in which NordVPN enpoint will be (other options are still possible: -M, -H)
+* -I - ID number of a country from which least loaded servers hould be picked up
+* -c - cleaning all openvpn connections, routes and iptables
 * -v - for verbose use
 * -h - short help of parameters and usage
 * -o directory - is for storing all temporary files, and logs in mentioned directory 
 
 ## ToDo
 
-- [ ] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
-- [ ] - add option to connect to choosen country
-- [ ] - implement cleaning from openvpn_cleaning into main script instead of current cleaning (which might not always be appropriate)
+- [X] - add option to connect to choosen country
+- [X] - check prerequisites (jq, ip, openvpn, iptables, nft etc)
+- [ ] - adding support for nftables (so either iptables or nftables) - it is partialy implemented already
+- [X] - checking if appropriate routing tables exists in iproute2/rt_tables - and manage them automatically
+- [X] - implement cleaning from openvpn_cleaning into main script instead of current cleaning (which might not always be appropriate)
 - [X] - cleaning of connections, ip rules and tables works inapropriately, needs to be corrected
 - [X] - added help (-h), so then changed obsucation (hidening to capital H)
 - [X] - automatically checking name for VPN connections (default is tun, but... who knows somebodys idea :))
@@ -70,11 +73,106 @@ obfuscated, Netherlands servers are used, but, when use:
 ## Changelog (I'm using [git-release-notes](https://www.npmjs.com/package/git-release-notes))
 
 
+* __Changelog__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 25 Jul 2019 13:46:00 +0200
+    
+    EAD -&gt; refs/heads/3.0.0, refs/remotes/origin/3.0.0
+    
+
+* __* added cleaning of openvpn connections, routes, iptables__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 25 Jul 2019 13:44:08 +0200
+    
+    
+    * added chosing country ID from which connections will be made
+    
+
+* __Added theoretically small changes__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Sat, 6 Jul 2019 08:39:38 +0200
+    
+    
+    * added waiting time between closing/cleaning connections and initiating new
+    ones - it might help to keep all inintiated connections stable - there were
+    sometimes problems that one of connections wasn&#39;t stable, and despite of proper
+    connection, proper initiation vpn was dead on this channel....
+    
+
+* __Added changelog, and updated README__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 4 Jul 2019 18:54:45 +0200
+    
+    
+    
+
+* __Added prerequisites checking__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 4 Jul 2019 18:54:06 +0200
+    
+    
+    
+
+* __I forgot to enable iptables :)__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Thu, 4 Jul 2019 18:21:24 +0200
+    
+    
+    
+
+* __## Few features__
+
+    [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 19:48:17 +0200
+    
+    
+    * added partial support of nftables
+    
+    * Added cleaning in the beggining of the script
+    
+    * updated README of new features
+    
+    * Changelog
+    
+    * Added checking if approprite rt_tables are added
+    
+
+* __Completely rewritten iptables/nftables management__
+
+    [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 10:23:49 +0200
+    
+    
+    
+
+* __Added nftables, and applying of tables is at the end instead of during__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 01:19:34 +0200
+    
+    
+    
+
+* __Added cleaning of VPN connections to main script__
+
+    [Kamil Czarnecki](mailto:kamoyl@outlook.com) - Wed, 3 Jul 2019 01:16:02 +0200
+    
+    
+    Lots of cleaning of code after cleaning connections
+    
+
+* __Added new features to be implemented__
+
+    [Kamoyl](mailto:kamoyl@outlook.com) - Sun, 16 Jun 2019 23:54:42 +0200
+    
+    efs/remotes/origin/1.0.0, refs/heads/1.0.0
+    Corrented some information in README file
+    
+    Updated changelog
+    
+
 * __Updated Changelog__
 
     [Kamoyl](mailto:kamoyl@outlook.com) - Fri, 14 Jun 2019 13:00:00 +0200
     
-    EAD -&gt; refs/heads/1.0.0, refs/remotes/origin/1.0.0
+    
     
 
 * __Rewritten cleaning of all vpn connections, rules and routing tables__
