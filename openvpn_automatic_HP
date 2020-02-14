@@ -47,7 +47,7 @@ ${NORMAL}${CYAN}This script manages LB HA connections to NordVPN services:${BLUE
     ${LIME}-m${BLUE} Multinational NordVPN servers - smallest load (connecting to a few countries servers at once)
     ${LIME}-I${BLUE} Best none-obfuscated servers from a country ID
     ${LIME}-M${BLUE} Amount of balanced connections
-          (defult:  3 simultaneus vpn connections,
+          (defult:  2 simultaneus vpn connections,
            max:     6 simultaneus vpn connections.)
     ${LIME}-o${BLUE} OUTPUT directory - where to store ALL LOGs and TEMP files
           (default directory is: ${CYAN}${HOME}/var${BLUE} and TMP and
@@ -128,16 +128,16 @@ else
   fi
 fi
 
-TMP="${VAR}/tmp"
+TMP="${VAR}/tmp-${CURRENT_TIMESTAMP}"
 mkdir -p ${TMP}
-LOG="${VAR}/log"
+LOG="${VAR}/log-${CURRENT_TIMESTAMP}"
 mkdir -p ${LOG}
 if [ -z ${M} ]
 then
-  LB_CONNECTIONS="4"
+  LB_CONNECTIONS="2"
 fi
 
-MAIN_ETH="enxb827eb330952"
+MAIN_ETH="eth0"
 OPENVPN_TEMPLATE="nordvpn_template.conf"
 DEV_VPN=$(grep ^dev "${SCRIPTS_HOME}/${OPENVPN_TEMPLATE}" | awk '{print $2}')
 NORDVPN_HA_PROCESS="nordvpn_ha_process"
@@ -196,7 +196,7 @@ then
   exit 0
 fi
 
-for i in {5..0}
+for i in {3..0}
 do
   echo -ne "Starting in:  .   ${i}   .  "'\r'
   sleep .50
@@ -209,7 +209,13 @@ if [[ ${VERBOSE} == yes ]]
 then
   debug "Collecting whole list of NordVPN countries and IDs"
 fi
-curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | . as $parent | .cities[] | [$parent.name, $parent.id, .name, .id] | "\(.[0])~\(.[1])"' | sort -u> "${TMP}/${COUNTRY_ID_FILE}" &
+#if [[ $(curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | . as $parent | .cities[] | [$parent.name, $parent.id, .name, .id] | "\(.[0])~\(.[1])"') == NULL ]] || [ $? -ne 0 ]
+#then
+#  error "NordVPN API doesn't work properly, exiting"
+#  exit 1
+#else 
+  curl --silent "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | . as $parent | .cities[] | [$parent.name, $parent.id, .name, .id] | "\(.[0])~\(.[1])"' | sort -u > "${TMP}/${COUNTRY_ID_FILE}" &
+#fi
 
 if [[ ${VERBOSE} == yes ]]
 then
@@ -397,7 +403,7 @@ do
 
   inf "Starting ${YELLOW}openvpn@nordvpn_srv${NUMBER}${CYAN} configuration"
   systemctl start openvpn@nordvpn_srv${NUMBER}
-  for i in {6..0}
+  for i in {5..0}
   do
     echo -ne "  .   ${i}   .  "'\r'
     sleep .50
