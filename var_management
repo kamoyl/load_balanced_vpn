@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [ $(caller | awk '{print $1}') -eq 0 ]
+then
+  CALLING=0
+  echo -e "${BLUE}${datestring} EXECUTE: ${YELLOW}[ ${LIME}$0 ${PARAMETERS} ${YELLOW} ]${RESET}"
+else
+  CALLING=1
+  if [[ ${VERBOSE} == yes ]]
+  then
+    debug "${YELLOW}[ ${LIME}$(echo $(caller | awk '{print $2}') | awk -F\/ '{print $NF}') ${YELLOW}calls (in line: ${LIME}$(caller | awk '{print $1}')${YELLOW}) ${LIME}$(echo ${BASH_SOURCE} | awk -F\/ '{print $NF}') ${YELLOW} ]"
+  fi
+fi
+
+if [ -z ${o} ]
+then
+    VAR="${HOME}/var"
+    mkdir -p ${VAR}
+else
+  VAR=$(readlink -f ${o})
+  mkdir -p ${VAR} > /dev/null 2>&1
+  if [ $? -ne 0 ]
+  then
+    error "I have no permissions to create OUTPUT directory here"
+    exit 1
+  fi
+fi
+
+SCRIPT_DIR=$(echo "${SCRIPT}" | awk -F\/ '{print $NF}')
+
+if [ -z ${TMP} ]
+then
+  export TMP="${VAR}/tmp-${SCRIPT_DIR}_${CURRENT_TIMESTAMP}"
+  mkdir -p ${TMP}
+fi
+
+if [ -z ${LOG} ]
+then
+  export LOG="${VAR}/log-${SCRIPT_DIR}_${CURRENT_TIMESTAMP}"
+fi
